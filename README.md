@@ -14,7 +14,6 @@ It helps you review solved problems with Ebbinghaus-style intervals, notes, time
 The Ebbinghaus forgetting curve says memory drops quickly after learning, then slows down.  
 The best strategy is short, repeated reviews at increasing intervals.
 
-# Default Review Cycles
 
 | Plan | Review Days |
 |---|---|
