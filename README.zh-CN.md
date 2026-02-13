@@ -1,4 +1,4 @@
-# <img src="icons/icon32.png" alt="LeetCode Review Planner icon" width="22"> LeetCode Review Plan - 基于遗忘曲线的 LeetCode 复习插件
+# <img src="icons/icon32.png" alt="LeetCode Review Planner icon" width="50"> LeetCode Review Plan - 基于遗忘曲线的 LeetCode 复习插件
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 

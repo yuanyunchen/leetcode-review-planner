@@ -1,4 +1,4 @@
-# <img src="icons/icon32.png" alt="LeetCode Review Planner icon" width="22"> LeetCode Review Planner - Chrome Extension
+# <img src="icons/icon32.png" alt="LeetCode Review Planner icon" width="50"> LeetCode Review Planner - Chrome Extension
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
