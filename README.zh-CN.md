@@ -1,11 +1,6 @@
-# LeetCode Review Plan - 基于遗忘曲线的 LeetCode 复习插件
+# <img src="icons/icon32.png" alt="LeetCode Review Planner icon" width="22"> LeetCode Review Plan - 基于遗忘曲线的 LeetCode 复习插件
 
 [English](README.md) | [简体中文](README.zh-CN.md)
-
-![Version](https://img.shields.io/badge/version-v2.0-7c5cff)
-![Platform](https://img.shields.io/badge/platform-Chrome%20Extension-4285F4)
-![Manifest](https://img.shields.io/badge/Manifest-V3-34A853)
-![Language](https://img.shields.io/badge/UI-English%20%7C%20Chinese-0ea5e9)
 
 > 做过的题，不再反复“重新学”。  
 > 用间隔复习把解题能力沉淀成长期记忆。
@@ -13,19 +8,6 @@
 这是一个支持 `leetcode.com` 与 `leetcode.cn` 的 Chrome 插件。  
 它通过遗忘曲线安排复习节奏，帮助你管理题目记录、复习历史、标签筛选和统计数据。
 
-## ✨ 功能亮点
-
-- 题目页右侧浮窗，**一键加入复习** / **提交复习** / **查看记录**
-- 内置 `完整` / `精简` 两种复习方案，支持自定义间隔编辑
-- 题目记录页可查看：加入时间、复习进度、历史笔记、后续计划
-- 主页包含：今日题目、全部题目、数据统计、设置
-- 支持标签搜索与筛选
-- 默认英文，可切换中文
-- 支持完整 JSON 导出/导入，便于备份与迁移
-
-## 搜索关键词（便于发现）
-
-LeetCode 复习插件，遗忘曲线，间隔复习，刷题复盘，面试准备，LeetCode Chrome 插件，spaced repetition LeetCode
 
 ## 快速开始
 
@@ -40,14 +22,6 @@ LeetCode 复习插件，遗忘曲线，间隔复习，刷题复盘，面试准�
 
 ## 使用说明
 
-1. 进入任意 LeetCode 题目页，右侧会出现浮窗入口。
-2. 展开浮窗后可选择 `Add Review`、`Submit Review`、`Record`。
-3. 选择 `Full` 或 `Light` 计划，并可填写用时与笔记。
-4. 在 `Problem Record` 中查看历史记录与后续计划。
-5. 在主页进行搜索、标签筛选和批量管理。
-6. 在设置中调整语言、UI 缩放、复习间隔和数据导入导出。
-
-### 示例截图 + 场景说明
 
 **A）题目页入口与快捷操作**  
 使用流程从题目页直接开始。先看到右侧折叠入口，展开后即可快速执行加入复习、提交复习和查看记录，避免在多个页面之间来回切换。
@@ -73,6 +47,16 @@ LeetCode 复习插件，遗忘曲线，间隔复习，刷题复盘，面试准�
   <img src="images/06-settings-panel.png" alt="Settings panel" width="49%" align="middle">
 </p>
 
+## ✨ 功能亮点
+
+- 题目页右侧浮窗，**一键加入复习** / **提交复习** / **查看记录**
+- 内置 `完整` / `精简` 两种复习方案，支持自定义间隔编辑
+- 题目记录页可查看：加入时间、复习进度、历史笔记、后续计划
+- 主页包含：今日题目、全部题目、数据统计、设置
+- 支持标签搜索与筛选
+- 默认英文，可切换中文
+- 支持完整 JSON 导出/导入，便于备份与迁移
+
 ## 常见问题
 
 ### 支持 leetcode.com 和 leetcode.cn 吗？
@@ -84,12 +68,8 @@ LeetCode 复习插件，遗忘曲线，间隔复习，刷题复盘，面试准�
 ### 版本更新会丢数据吗？
 建议定期使用 JSON 导出；插件支持导入恢复与迁移。
 
-## 社区与反馈
-
-- 如果这个项目对你有帮助，欢迎点个 Star
-- 遇到问题或有建议，欢迎提 Issue
-- 欢迎分享你的使用截图与学习流程
 
 ## 版本
 
 `v2.0` · Made by Kenzie & Ethan
+如果这个项目对你有帮助，欢迎点个 Star
