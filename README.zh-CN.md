@@ -40,35 +40,41 @@ LeetCode 复习插件，遗忘曲线，间隔复习，刷题复盘，面试准�
 
 ## 使用说明
 
-### 1）进入 LeetCode 题目页
-右侧会出现插件入口按钮。
+1. 进入任意 LeetCode 题目页，右侧会出现浮窗入口。
+2. 展开浮窗后可选择 `Add Review`、`Submit Review`、`Record`。
+3. 选择 `Full` 或 `Light` 计划，并可填写用时与笔记。
+4. 在 `Problem Record` 中查看历史记录与后续计划。
+5. 在主页进行搜索、标签筛选和批量管理。
+6. 在设置中调整语言、UI 缩放、复习间隔和数据导入导出。
 
-![Problem page - widget collapsed](images/01-problem-page-widget-collapsed.png)
+### 示例截图
 
-### 2）展开浮窗并选择操作
-可选 `Add Review`、`Submit Review`、`Record`。
-
-![Problem page - widget expanded](images/02-problem-page-widget-expanded.png)
-
-### 3）加入复习计划
-选择 `Full` 或 `Light`，并可填写用时和笔记。
-
-![Add to review modal](images/03-add-to-review-modal.png)
-
-### 4）查看题目记录与后续计划
-可查看进度、历史记录与未来复习日期。
-
-![Problem record modal](images/04-problem-record-modal.png)
-
-### 5）在主页管理全部题目
-支持搜索、标签筛选、快速打开/提交/删除。
-
-![Home - all problems](images/05-home-all-problems.png)
-
-### 6）在设置中个性化配置
-可调整语言、界面比例、复习间隔方案、数据导入导出。
-
-![Settings panel](images/06-settings-panel.png)
+<table>
+  <tr>
+    <td width="50%">
+      <img src="images/01-problem-page-widget-collapsed.png" alt="Problem page - widget collapsed" width="100%">
+    </td>
+    <td width="50%">
+      <img src="images/02-problem-page-widget-expanded.png" alt="Problem page - widget expanded" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="images/03-add-to-review-modal.png" alt="Add to review modal" width="100%">
+    </td>
+    <td width="50%">
+      <img src="images/04-problem-record-modal.png" alt="Problem record modal" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="images/05-home-all-problems.png" alt="Home - all problems" width="100%">
+    </td>
+    <td width="50%">
+      <img src="images/06-settings-panel.png" alt="Settings panel" width="100%">
+    </td>
+  </tr>
+</table>
 
 ## 常见问题
 

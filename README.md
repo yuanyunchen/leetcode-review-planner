@@ -36,35 +36,41 @@ Optional:
 
 ## Usage
 
-### 1) Open a LeetCode problem page
-The floating widget appears on the right side.
+1. Open a LeetCode problem page and find the floating widget.
+2. Expand the widget and choose `Add Review`, `Submit Review`, or `Record`.
+3. Add the problem to `Full` or `Light` plan (optional notes/time).
+4. Check `Problem Record` for history and upcoming plan.
+5. Use `Home` to search/filter/manage all tracked problems.
+6. Customize settings: language, UI scale, intervals, export/import.
 
-![Problem page - widget collapsed](images/01-problem-page-widget-collapsed.png)
+### Example Screenshots
 
-### 2) Expand widget and pick an action
-Use `Add Review`, `Submit Review`, or `Record`.
-
-![Problem page - widget expanded](images/02-problem-page-widget-expanded.png)
-
-### 3) Add to a review plan
-Choose `Full` or `Light`, and optionally add notes/time.
-
-![Add to review modal](images/03-add-to-review-modal.png)
-
-### 4) Track history and upcoming plan
-Review progress, notes, and future dates from Problem Record.
-
-![Problem record modal](images/04-problem-record-modal.png)
-
-### 5) Manage all problems from Home
-Search, filter by tag, open/submit/delete quickly.
-
-![Home - all problems](images/05-home-all-problems.png)
-
-### 6) Personalize in Settings
-Language, UI scale, interval plans, export/import.
-
-![Settings panel](images/06-settings-panel.png)
+<table>
+  <tr>
+    <td width="50%">
+      <img src="images/01-problem-page-widget-collapsed.png" alt="Problem page - widget collapsed" width="100%">
+    </td>
+    <td width="50%">
+      <img src="images/02-problem-page-widget-expanded.png" alt="Problem page - widget expanded" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="images/03-add-to-review-modal.png" alt="Add to review modal" width="100%">
+    </td>
+    <td width="50%">
+      <img src="images/04-problem-record-modal.png" alt="Problem record modal" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="images/05-home-all-problems.png" alt="Home - all problems" width="100%">
+    </td>
+    <td width="50%">
+      <img src="images/06-settings-panel.png" alt="Settings panel" width="100%">
+    </td>
+  </tr>
+</table>
 
 
 ## ✨ Features
