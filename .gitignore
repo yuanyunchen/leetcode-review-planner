@@ -8,6 +8,7 @@
 # Temporary files
 *.tmp
 *.log
+*.pyc
 
 # Node modules (if you add build tools later)
 node_modules/
@@ -19,6 +20,18 @@ node_modules/
 # Build output
 dist/
 build/
+
+# Project data / caches / outputs
+dataset/
+cache/
+output/
+results/
+
+# Work log
+WLOG.md
+
+# Extension exported backups
+leetcode-reviews-*.json
 
 # Archives
 *.zip

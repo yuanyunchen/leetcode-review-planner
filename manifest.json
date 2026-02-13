@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "LeetCode Spaced Repetition",
-  "version": "1.0.0",
-  "description": "根据遗忘曲线智能安排LeetCode题目复习，自动同步到Google Calendar",
+  "name": "LeetCode Review Planner",
+  "version": "2.0.0",
+  "description": "Spaced repetition for LeetCode with review plans, history, tag search, and optional Google Calendar sync.",
   "permissions": [
     "storage",
     "alarms",
     "notifications",
-    "identity"
+    "identity",
+    "tabs"
   ],
   "host_permissions": [
     "https://leetcode.com/*",
@@ -23,8 +24,9 @@
         "https://leetcode.com/problems/*",
         "https://leetcode.cn/problems/*"
       ],
-      "js": ["content.js"],
-      "css": ["content.css"]
+      "js": ["i18n.js", "content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
     }
   ],
   "action": {
