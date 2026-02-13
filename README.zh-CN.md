@@ -47,34 +47,31 @@ LeetCode 复习插件，遗忘曲线，间隔复习，刷题复盘，面试准�
 5. 在主页进行搜索、标签筛选和批量管理。
 6. 在设置中调整语言、UI 缩放、复习间隔和数据导入导出。
 
-### 示例截图
+### 示例截图 + 场景说明
 
-<table>
-  <tr>
-    <td width="50%">
-      <img src="images/01-problem-page-widget-collapsed.png" alt="Problem page - widget collapsed" width="100%">
-    </td>
-    <td width="50%">
-      <img src="images/02-problem-page-widget-expanded.png" alt="Problem page - widget expanded" width="100%">
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="images/03-add-to-review-modal.png" alt="Add to review modal" width="100%">
-    </td>
-    <td width="50%">
-      <img src="images/04-problem-record-modal.png" alt="Problem record modal" width="100%">
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="images/05-home-all-problems.png" alt="Home - all problems" width="100%">
-    </td>
-    <td width="50%">
-      <img src="images/06-settings-panel.png" alt="Settings panel" width="100%">
-    </td>
-  </tr>
-</table>
+**A）题目页入口与快捷操作**  
+使用流程从题目页直接开始。先看到右侧折叠入口，展开后即可快速执行加入复习、提交复习和查看记录，避免在多个页面之间来回切换。
+
+<p>
+  <img src="images/01-problem-page-widget-collapsed.png" alt="Problem page - widget collapsed" width="49%">
+  <img src="images/02-problem-page-widget-expanded.png" alt="Problem page - widget expanded" width="49%">
+</p>
+
+**B）计划设置与记录追踪**  
+加入题目时可以选择完整/精简计划，并记录可选的用时与笔记。之后在记录页可以清晰查看进度、历史提交和后续复习日期，复盘路径一目了然。
+
+<p>
+  <img src="images/03-add-to-review-modal.png" alt="Add to review modal" width="49%">
+  <img src="images/04-problem-record-modal.png" alt="Problem record modal" width="49%">
+</p>
+
+**C）主页管理与个性化配置**  
+主页用于日常集中管理：搜索、标签筛选、打开/提交/删除等操作都可快速完成。设置页用于长期个性化调整，包括语言、界面缩放、间隔模板和数据备份策略。
+
+<p>
+  <img src="images/05-home-all-problems.png" alt="Home - all problems" width="49%">
+  <img src="images/06-settings-panel.png" alt="Settings panel" width="49%">
+</p>
 
 ## 常见问题
 
