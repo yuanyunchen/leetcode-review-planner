@@ -3,6 +3,12 @@
   "name": "LeetCode Review Planner",
   "version": "2.0.0",
   "description": "Spaced repetition for LeetCode with review plans, history, tag search, and optional Google Calendar sync.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": [
     "storage",
     "alarms",
@@ -30,6 +36,10 @@
     }
   ],
   "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    },
     "default_popup": "popup.html"
   },
   "oauth2": {

@@ -36,37 +36,28 @@ Optional:
 
 ## Usage
 
-1. Open a LeetCode problem page and find the floating widget.
-2. Expand the widget and choose `Add Review`, `Submit Review`, or `Record`.
-3. Add the problem to `Full` or `Light` plan (optional notes/time).
-4. Check `Problem Record` for history and upcoming plan.
-5. Use `Home` to search/filter/manage all tracked problems.
-6. Customize settings: language, UI scale, intervals, export/import.
-
-### Example Screenshots + Context
-
 **A) Problem-page entry and quick actions**  
 The workflow starts directly on the problem page. First you see the compact floating entry; after expanding it, you can immediately choose what to do next: add this problem to a review plan, submit a review, or open the record panel.
 
 <p>
-  <img src="images/01-problem-page-widget-collapsed.png" alt="Problem page - widget collapsed" width="49%">
-  <img src="images/02-problem-page-widget-expanded.png" alt="Problem page - widget expanded" width="49%">
+  <img src="images/01-problem-page-widget-collapsed.png" alt="Problem page - widget collapsed" width="49%" align="middle">
+  <img src="images/02-problem-page-widget-expanded.png" alt="Problem page - widget expanded" width="49%" align="middle">
 </p>
 
 **B) Plan setup and record tracking**  
 When adding a problem, you pick Full or Light intervals and can attach optional notes/time to keep context. Later, the record page shows your progress, review history, and upcoming review dates so you always know what to practice next.
 
 <p>
-  <img src="images/03-add-to-review-modal.png" alt="Add to review modal" width="49%">
-  <img src="images/04-problem-record-modal.png" alt="Problem record modal" width="49%">
+  <img src="images/03-add-to-review-modal.png" alt="Add to review modal" width="49%" align="middle">
+  <img src="images/04-problem-record-modal.png" alt="Problem record modal" width="49%" align="middle">
 </p>
 
 **C) Daily management and personalization**  
 The Home panel is your daily command center for searching, filtering, and bulk actions across all tracked problems. Settings lets you personalize language, UI scale, interval templates, and data backup flow for long-term use.
 
 <p>
-  <img src="images/05-home-all-problems.png" alt="Home - all problems" width="49%">
-  <img src="images/06-settings-panel.png" alt="Settings panel" width="49%">
+  <img src="images/05-home-all-problems.png" alt="Home - all problems" width="49%" align="middle">
+  <img src="images/06-settings-panel.png" alt="Settings panel" width="49%" align="middle">
 </p>
 
 
