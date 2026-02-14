@@ -1656,47 +1656,63 @@ class LeetCodeHelper {
         intervals: Array.isArray(problem.intervals) ? [...problem.intervals] : []
       }] : []);
 
-    const addHistoryHtml = addHistory.length > 0
-      ? addHistory
-        .sort((a, b) => a.timestamp - b.timestamp)
-        .map(h => {
-          const typeLabel = h.type === 'readd' ? '重新加入' : '加入复习';
-          const planLabel = h.planType === 'full' ? '🔥 完整' : (h.planType === 'half' ? '⚡ 精简' : '🧪 自定义');
-          const intervalsLabel = Array.isArray(h.intervals) && h.intervals.length > 0 ? h.intervals.join(' / ') : '-';
-          return `
-            <div class="sr-history-item">
-              <div class="sr-history-header">
-                <span class="sr-history-num">${typeLabel}</span>
-                <span class="sr-history-date">${new Date(h.timestamp).toLocaleString()}</span>
-              </div>
-              <div class="sr-add-record-line">${planLabel} · ${intervalsLabel}</div>
-            </div>
-          `;
-        }).join('')
-      : '<div class="sr-empty-history">暂无复习记录</div>';
+    const mergedHistory = [];
+    addHistory.forEach(h => {
+      const planLabel = h.planType === 'full' ? '🔥 完整' : (h.planType === 'half' ? '⚡ 精简' : '🧪 自定义');
+      const intervalsLabel = Array.isArray(h.intervals) && h.intervals.length > 0 ? h.intervals.join(' / ') : '-';
+      const title = h.type === 'readd' ? 'Re-add Review' : 'Add Review';
+      const addExtraLabel = Number.isInteger(h.extraDays) ? `+${h.extraDays}d` : '';
+      const lineText = addExtraLabel
+        ? `${addExtraLabel} · ${planLabel} · ${intervalsLabel}`
+        : `${planLabel} · ${intervalsLabel}`;
+      mergedHistory.push({
+        timestamp: h.timestamp,
+        kind: 'add',
+        title,
+        detailLines: [{ className: 'sr-history-line', text: lineText }]
+      });
+    });
+    history.forEach(h => {
+      const dayLabel = h.dayLabel != null ? `Day ${h.dayLabel}` : 'Notes';
+      const detailLines = [];
+      if (h.comment) detailLines.push({ className: 'sr-history-comment', text: `📝 ${h.comment}` });
+      mergedHistory.push({
+        timestamp: h.timestamp,
+        kind: 'review',
+        title: dayLabel,
+        inlineTime: h.time ? `⏱ ${h.time}` : '',
+        detailLines
+      });
+    });
 
-    const historyHtml = history.length > 0
-      ? history.map(h => {
-        const dayLabel = h.dayLabel != null ? `第${h.dayLabel}天` : '笔记';
-        const hasContent = h.time || h.comment;
-        let itemHtml = `<div class="sr-history-item">
-          <div class="sr-history-header">
-            <span class="sr-history-num">${dayLabel}</span>
-            <span class="sr-history-date">${new Date(h.timestamp).toLocaleString()}</span>
-          </div>`;
-        if (hasContent) {
-          if (h.time) itemHtml += `<div class="sr-history-time">⏱ ${h.time}</div>`;
-          if (h.comment) itemHtml += `<div class="sr-history-comment">📝 ${h.comment}</div>`;
-        }
-        itemHtml += `</div>`;
-        return itemHtml;
-      }).join('')
+    const historyHtml = mergedHistory.length > 0
+      ? mergedHistory
+        .sort((a, b) => a.timestamp - b.timestamp)
+        .map(item => `
+          <div class="sr-history-item ${item.kind === 'add' ? 'is-add' : 'is-review'}">
+            <div class="sr-history-header">
+              <div class="sr-history-main">
+                <span class="sr-history-num">${item.title}</span>
+                ${item.inlineTime ? `<span class="sr-history-inline-time">${item.inlineTime}</span>` : ''}
+              </div>
+              <span class="sr-history-date">${new Date(item.timestamp).toLocaleString()}</span>
+            </div>
+            ${item.detailLines.map(line => `<div class="${line.className}">${line.text}</div>`).join('')}
+          </div>
+        `).join('')
       : '<div class="sr-empty-history">暂无复习记录</div>';
 
     const futureItems = [];
     for (let i = problem.currentInterval; i < problem.reviewDates.length; i++) {
       const date = new Date(problem.reviewDates[i]);
-      const dayDiff = Math.round((problem.reviewDates[i] - problem.addedAt) / (1000 * 60 * 60 * 24));
+      const intervalDay = (problem.intervals || [])[i];
+      const dayDiff = Number.isInteger(intervalDay)
+        ? intervalDay
+        : Math.max(0, Math.floor(
+          ((new Date(problem.reviewDates[i]).setHours(0, 0, 0, 0)) -
+          (new Date(problem.planBaseAt || problem.addedAt || Date.now()).setHours(0, 0, 0, 0))) /
+          (1000 * 60 * 60 * 24)
+        ));
       futureItems.push(`
         <div class="sr-future-item">
           <span class="sr-future-day">第${dayDiff}天</span>
@@ -1733,9 +1749,6 @@ class LeetCodeHelper {
           <div class="sr-detail-stat"><span class="sr-stat-label">状态</span><span class="sr-stat-value">${isMastered ? '⭐ 已掌握' : isCompleted ? '✅ 全部完成' : '📖 复习中'}</span></div>
         </div>
         <div class="sr-section-title">历史记录</div>
-        <div class="sr-history-subtitle">添加记录</div>
-        <div class="sr-history-list">${addHistoryHtml}</div>
-        <div class="sr-history-subtitle">复习历史</div>
         <div class="sr-history-list">${historyHtml}</div>
         <div class="sr-section-title" style="margin-top:12px">复习计划</div>
         <div class="sr-future-list">${futurePlanHtml}</div>

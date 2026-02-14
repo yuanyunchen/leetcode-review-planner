@@ -1809,13 +1809,6 @@ textarea:focus-visible {
   margin-top: 4px;
 }
 
-.sr-history-subtitle {
-  font-size: 12px;
-  font-weight: 700;
-  color: #64748b;
-  margin: 8px 0 6px;
-}
-
 /* Modal Footer */
 .leetcode-sr-modal-footer {
   display: flex;
@@ -1923,15 +1916,35 @@ textarea:focus-visible {
   margin-bottom: 2px;
 }
 
+.sr-history-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .sr-history-num {
   font-size: 12px;
   font-weight: 700;
   color: #6366f1;
 }
 
+.sr-history-item.is-add .sr-history-num {
+  color: #5b60dd;
+}
+
+.sr-history-item.is-review .sr-history-num {
+  color: #4b5563;
+}
+
 .sr-history-date {
   font-size: 10px;
   color: #94a3b8;
+}
+
+.sr-history-inline-time {
+  font-size: 12px;
+  color: #059669;
+  font-weight: 700;
 }
 
 .sr-history-time {
@@ -1947,7 +1960,7 @@ textarea:focus-visible {
   line-height: 1.4;
 }
 
-.sr-add-record-line {
+.sr-history-line {
   font-size: 12px;
   color: #4b5563;
   margin-top: 2px;
@@ -2478,10 +2491,6 @@ textarea:focus-visible {
     color: #f3f4f6;
   }
 
-  .sr-history-subtitle {
-    color: #94a3b8;
-  }
-
   .sr-history-item {
     background: #374151;
   }
@@ -2490,8 +2499,16 @@ textarea:focus-visible {
     color: #d1d5db;
   }
 
-  .sr-add-record-line {
+  .sr-history-line {
     color: #d1d5db;
+  }
+
+  .sr-history-inline-time {
+    color: #34d399;
+  }
+
+  .sr-history-item.is-review .sr-history-num {
+    color: #e5e7eb;
   }
 
   .sr-future-item {

@@ -541,7 +541,14 @@ class PopupManager {
     const futureItems = [];
     for (let i = problem.currentInterval; i < problem.reviewDates.length; i++) {
       const date = new Date(problem.reviewDates[i]);
-      const dayDiff = Math.round((problem.reviewDates[i] - problem.addedAt) / (1000 * 60 * 60 * 24));
+      const intervalDay = (problem.intervals || [])[i];
+      const dayDiff = Number.isInteger(intervalDay)
+        ? intervalDay
+        : Math.max(0, Math.floor(
+          ((new Date(problem.reviewDates[i]).setHours(0, 0, 0, 0)) -
+          (new Date(problem.planBaseAt || problem.addedAt || Date.now()).setHours(0, 0, 0, 0))) /
+          (1000 * 60 * 60 * 24)
+        ));
       futureItems.push(`
         <div class="record-future-item">
           <span class="record-future-day">第${dayDiff}天</span>

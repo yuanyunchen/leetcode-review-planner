@@ -167,6 +167,19 @@ class SpacedRepetitionManager {
 
   // ============ 核心功能 ============
 
+  getStartOfDayTs(ts = Date.now()) {
+    const d = new Date(ts);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+
+  getCalendarDayDiff(fromTs, toTs = Date.now()) {
+    const dayMs = 24 * 60 * 60 * 1000;
+    const fromDay = this.getStartOfDayTs(fromTs);
+    const toDay = this.getStartOfDayTs(toTs);
+    return Math.max(0, Math.floor((toDay - fromDay) / dayMs));
+  }
+
   async addProblem(problemInfo, planType = 'full', customIntervals = null, time = null, comment = null) {
     try {
       const storageResult = await chrome.storage.local.get('problems');
@@ -180,8 +193,9 @@ class SpacedRepetitionManager {
       if (!intervals || intervals.length === 0) {
         return { success: false, error: '请输入有效天数' };
       }
-      const reviewDates = this.generateReviewDates(intervals);
       const now = Date.now();
+      const planBaseAt = this.getStartOfDayTs(now);
+      const reviewDates = this.generateReviewDates(intervals, planBaseAt);
 
       const reviewHistory = [];
       // 添加第0天的提交记录（加入时的笔记）
@@ -198,6 +212,7 @@ class SpacedRepetitionManager {
       problemsMap[problemInfo.slug] = {
         ...problemInfo,
         addedAt: now,
+        planBaseAt: planBaseAt,
         planType: planType,
         intervals: intervals,
         reviewDates: reviewDates,
@@ -209,7 +224,8 @@ class SpacedRepetitionManager {
           timestamp: now,
           type: 'add',
           planType: planType,
-          intervals: [...intervals]
+          intervals: [...intervals],
+          planBaseAt: planBaseAt
         }],
         calendarEventIds: []
       };
@@ -230,14 +246,15 @@ class SpacedRepetitionManager {
       )].sort((a, b) => a - b);
     }
     const template = this.planTemplates[planType];
-    return template ? template.intervals : this.planTemplates.full.intervals;
+    return template ? [...template.intervals] : [...this.planTemplates.full.intervals];
   }
 
-  generateReviewDates(intervals) {
-    const now = new Date();
+  generateReviewDates(intervals, baseTs = Date.now()) {
+    const base = new Date(baseTs);
+    base.setHours(0, 0, 0, 0);
     const dates = [];
     for (const interval of intervals) {
-      const d = new Date(now);
+      const d = new Date(base);
       d.setDate(d.getDate() + interval);
       d.setHours(20, 0, 0, 0);
       dates.push(d.getTime());
@@ -316,7 +333,8 @@ class SpacedRepetitionManager {
       const canConsumePlannedReview = !!dueDay && today.getTime() >= dueDay.getTime();
 
       // 计算天数标签（提前提交按实际天数）
-      const daysSinceAdd = Math.round((now - problem.addedAt) / (1000 * 60 * 60 * 24));
+      const planBaseAt = problem.planBaseAt || problem.addedAt || now;
+      const daysSinceAdd = this.getCalendarDayDiff(planBaseAt, now);
       const intervalDay = (problem.intervals || [])[problem.currentInterval] || daysSinceAdd;
 
       const entry = {
@@ -415,8 +433,9 @@ class SpacedRepetitionManager {
       if (!intervals || intervals.length === 0) {
         return { success: false, error: '请输入有效天数' };
       }
-      const reviewDates = this.generateReviewDates(intervals);
       const now = Date.now();
+      const planBaseAt = this.getStartOfDayTs(now);
+      const reviewDates = this.generateReviewDates(intervals, planBaseAt);
 
       if (!Array.isArray(problem.addHistory)) {
         problem.addHistory = [];
@@ -426,14 +445,16 @@ class SpacedRepetitionManager {
           timestamp: problem.addedAt,
           type: 'add',
           planType: problem.planType || 'full',
-          intervals: Array.isArray(problem.intervals) ? [...problem.intervals] : []
+          intervals: Array.isArray(problem.intervals) ? [...problem.intervals] : [],
+          planBaseAt: problem.planBaseAt || this.getStartOfDayTs(problem.addedAt)
         });
       }
       problem.addHistory.push({
         timestamp: now,
         type: 'readd',
         planType: planType,
-        intervals: [...intervals]
+        intervals: [...intervals],
+        planBaseAt: planBaseAt
       });
 
       problem.planType = planType;
@@ -442,6 +463,7 @@ class SpacedRepetitionManager {
       problem.currentInterval = 0;
       problem.mastered = false;
       problem.addedAt = now;
+      problem.planBaseAt = planBaseAt;
       delete problem.masteredAt;
       // reviewHistory is preserved
 
@@ -457,6 +479,7 @@ class SpacedRepetitionManager {
 
     if (problemsMap[slug]) {
       const problem = problemsMap[slug];
+      const now = Date.now();
       const d = new Date();
       d.setDate(d.getDate() + days);
       d.setHours(20, 0, 0, 0);
@@ -468,6 +491,19 @@ class SpacedRepetitionManager {
       if (!problem.intervals) problem.intervals = [];
       problem.intervals.push(days);
       problem.intervals.sort((a, b) => a - b);
+
+      // 记录 Add Review 历史（快照写入后不再变化）
+      if (!Array.isArray(problem.addHistory)) {
+        problem.addHistory = [];
+      }
+      problem.addHistory.push({
+        timestamp: now,
+        type: 'addExtra',
+        planType: problem.planType || 'custom',
+        intervals: [...problem.intervals],
+        extraDays: days,
+        planBaseAt: problem.planBaseAt || this.getStartOfDayTs(problem.addedAt || now)
+      });
 
       await chrome.storage.local.set({ problems: problemsMap });
       return { success: true };
@@ -644,18 +680,17 @@ class SpacedRepetitionManager {
           }
         }
       }
-      // 迁移旧的 light 默认值 [3,7,30] -> [3,10,30]
+      // 迁移 light 模板：把旧的 7 天统一替换为 10 天
       const half = this.planTemplates.half;
-      if (
-        half &&
-        Array.isArray(half.intervals) &&
-        half.intervals.length === 3 &&
-        half.intervals[0] === 3 &&
-        half.intervals[1] === 7 &&
-        half.intervals[2] === 30
-      ) {
-        half.intervals = [3, 10, 30];
-        await this.savePlanTemplates();
+      if (half && Array.isArray(half.intervals)) {
+        const before = JSON.stringify(half.intervals);
+        half.intervals = half.intervals.map(v => (v === 7 ? 10 : v));
+        half.intervals = [...new Set(half.intervals)].sort((a, b) => a - b);
+        this.planTemplates.half.name = this.planTemplates.half.name.replace(/\(\d+次\)/, `(${half.intervals.length}次)`);
+        const after = JSON.stringify(half.intervals);
+        if (before !== after) {
+          await this.savePlanTemplates();
+        }
       }
     } catch (e) { /* ignore */ }
   }
