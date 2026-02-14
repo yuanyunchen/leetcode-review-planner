@@ -44,11 +44,17 @@ The workflow starts directly on the problem page. Expand the floating widget to 
 **B) Plan setup, submission, and records**  
 When adding a problem, choose Full/Light/Custom intervals and optionally save notes/time. During review, submit time and notes in one focused modal, then track full progress in the record view.
 
-<p>
+<!-- <p>
   <img src="images/03-add-plan-modal.png" alt="Add to review plan modal" width="32.6%" align="middle">
-  <!-- <img src="images/04-submit-review-modal.png" alt="Submit review modal" width="32.6%" align="middle"> -->
+  <img src="images/04-submit-review-modal.png" alt="Submit review modal" width="32.6%" align="middle">
   <img src="images/05-problem-record-modal.png" alt="Problem record modal" width="32.6%" align="middle">
+</p> -->
+
+<p>
+  <img src="images/03-add-plan-modal.png" alt="Add to review plan modal" width="50%" align="middle">
+  <img src="images/05-problem-record-modal.png" alt="Problem record modal" width="50%" align="middle">
 </p>
+
 
 **C) Home management and personalization**  
 The Home "All Problems" view supports search, tags, and quick actions for daily management. Settings lets you tune language, default plan, UI scale, and interval templates.
