@@ -27,28 +27,21 @@
   <img src="images/02-widget-today-panel.png" alt="Today review panel from widget" width="49%" align="middle">
 </p>
 
-**B）计划设置与复习提交**  
-加入题目时可选择完整/精简/自定义计划，并保存可选的用时与笔记；提交复习时也可在同一弹窗快速记录关键信息。
+**B）计划设置、复习提交与记录追踪**  
+加入题目时可选择完整/精简/自定义计划，并保存可选的用时与笔记；提交复习后可在记录页持续追踪历史与进度。
 
 <p>
-  <img src="images/03-add-plan-modal.png" alt="Add to review plan modal" width="49%" align="middle">
-  <img src="images/04-submit-review-modal.png" alt="Submit review modal" width="49%" align="middle">
+  <img src="images/03-add-plan-modal.png" alt="Add to review plan modal" width="32.6%" align="middle">
+  <img src="images/04-submit-review-modal.png" alt="Submit review modal" width="32.6%" align="middle">
+  <img src="images/05-problem-record-modal.png" alt="Problem record modal" width="32.6%" align="middle">
 </p>
 
-**C）记录追踪与题目管理**  
-记录页可查看复习历史、笔记和后续计划；主页“全部题目”支持搜索、标签筛选与快捷操作，方便日常集中管理。
-
-<p>
-  <img src="images/05-problem-record-modal.png" alt="Problem record modal" width="49%" align="middle">
-  <img src="images/06-home-all-problems.png" alt="Home all problems view" width="49%" align="middle">
-</p>
-
-**D）个性化设置与数据统计**  
-设置页可调整语言、默认计划、界面缩放和间隔模板；统计页可快速查看连续天数、平均用时、掌握率和复习活动。
+**C）主页管理与个性化设置**  
+主页“全部题目”支持搜索、标签筛选与快捷操作，方便日常集中管理；设置页可调整语言、默认计划、界面缩放和间隔模板。
 
 <p>
   <img src="images/07-home-settings.png" alt="Home settings view" width="49%" align="middle">
-  <img src="images/08-home-statistics.png" alt="Home statistics view" width="49%" align="middle">
+  <img src="images/06-home-all-problems.png" alt="Home all problems view" width="49%" align="middle">
 </p>
 
 ## ✨ 功能亮点

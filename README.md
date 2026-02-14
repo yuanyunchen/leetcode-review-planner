@@ -41,28 +41,21 @@ The workflow starts directly on the problem page. Expand the floating widget to 
   <img src="images/02-widget-today-panel.png" alt="Today review panel from widget" width="49%" align="middle">
 </p>
 
-**B) Plan setup and review submission**  
-When adding a problem, choose Full/Light/Custom intervals and optionally save notes/time. During review, submit time and notes in one focused modal.
+**B) Plan setup, submission, and records**  
+When adding a problem, choose Full/Light/Custom intervals and optionally save notes/time. During review, submit time and notes in one focused modal, then track full progress in the record view.
 
 <p>
-  <img src="images/03-add-plan-modal.png" alt="Add to review plan modal" width="49%" align="middle">
-  <img src="images/04-submit-review-modal.png" alt="Submit review modal" width="49%" align="middle">
+  <img src="images/03-add-plan-modal.png" alt="Add to review plan modal" width="32.6%" align="middle">
+  <img src="images/04-submit-review-modal.png" alt="Submit review modal" width="32.6%" align="middle">
+  <img src="images/05-problem-record-modal.png" alt="Problem record modal" width="32.6%" align="middle">
 </p>
 
-**C) Record tracking and problem management**  
-Use the record page to review history, notes, and upcoming plans. The Home "All Problems" view supports search, tags, and quick actions for daily management.
-
-<p>
-  <img src="images/05-problem-record-modal.png" alt="Problem record modal" width="49%" align="middle">
-  <img src="images/06-home-all-problems.png" alt="Home all problems view" width="49%" align="middle">
-</p>
-
-**D) Personalization and analytics**  
-Settings lets you tune language, default plan, UI scale, and interval templates. Statistics gives a quick snapshot of streak, average time, mastery rate, and review activity.
+**C) Home management and personalization**  
+The Home "All Problems" view supports search, tags, and quick actions for daily management. Settings lets you tune language, default plan, UI scale, and interval templates.
 
 <p>
   <img src="images/07-home-settings.png" alt="Home settings view" width="49%" align="middle">
-  <img src="images/08-home-statistics.png" alt="Home statistics view" width="49%" align="middle">
+  <img src="images/06-home-all-problems.png" alt="Home all problems view" width="49%" align="middle">
 </p>
 
 
