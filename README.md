@@ -18,7 +18,7 @@ The best strategy is short, repeated reviews at increasing intervals.
 | Plan | Review Days |
 |---|---|
 | Full | 1, 3, 7, 14, 30, 60 |
-| Light | 3, 7, 30 |
+| Light | 3, 10, 30 |
 
 You can also edit interval plans in Settings.
 
