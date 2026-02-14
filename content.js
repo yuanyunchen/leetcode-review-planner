@@ -96,6 +96,7 @@ class LeetCodeHelper {
         '.sr-problem-name',
         '.problem-title',
         '.sr-hm-card-title',
+        '.sr-hm-overdue-title',
         '.sr-today-title',
         '.sr-history-comment',
         '.record-comment',
@@ -115,8 +116,22 @@ class LeetCodeHelper {
       .filter(Boolean);
     const nums = tokens
       .map(t => parseInt(t, 10))
-      .filter(n => Number.isInteger(n) && n > 0);
+      .filter(n => Number.isInteger(n) && n >= 0);
     return [...new Set(nums)].sort((a, b) => a - b);
+  }
+
+  getStartOfDayTs(ts = Date.now()) {
+    const d = new Date(ts);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+
+  getOverdueDays(nextReviewTs, nowTs = Date.now()) {
+    if (!nextReviewTs) return 0;
+    const due = this.getStartOfDayTs(nextReviewTs);
+    const today = this.getStartOfDayTs(nowTs);
+    if (due >= today) return 0;
+    return Math.floor((today - due) / 86400000);
   }
 
   applyScale() {
@@ -249,12 +264,17 @@ class LeetCodeHelper {
     container.id = 'leetcode-sr-container';
     container.className = 'leetcode-sr-floating';
     container.style.zoom = this.scale;
+    const appIconUrl = chrome.runtime.getURL('icons/icons.png');
 
     // 折叠/展开按钮 (drag handle)
     const toggleBtn = document.createElement('button');
     toggleBtn.id = 'leetcode-sr-toggle';
     toggleBtn.className = 'leetcode-sr-toggle-btn';
-    toggleBtn.innerHTML = '📚';
+    toggleBtn.innerHTML = `<img class="sr-app-icon" src="${appIconUrl}" alt="App">`;
+    const toggleIconEl = toggleBtn.querySelector('.sr-app-icon');
+    if (toggleIconEl) {
+      toggleIconEl.addEventListener('error', () => { toggleBtn.textContent = '📚'; });
+    }
     toggleBtn.title = '展开/折叠';
     toggleBtn.addEventListener('mousedown', (e) => {
       this._toggleMouseDown = { x: e.clientX, y: e.clientY, time: Date.now() };
@@ -318,6 +338,7 @@ class LeetCodeHelper {
     const recordRow = document.createElement('div');
     recordRow.id = 'leetcode-sr-record-row';
     recordRow.className = 'leetcode-sr-record-row';
+    recordRow.style.display = 'none';
 
     // 主页按钮 (小)
     const homeBtn = document.createElement('button');
@@ -348,15 +369,29 @@ class LeetCodeHelper {
     this.floatingButton = container;
     this.restorePosition(container);
 
-    // 默认折叠
-    this.isCollapsed = true;
-    collapsible.style.display = 'none';
+    // 首次默认折叠；后续从本地状态恢复
+    this.isCollapsed = this.loadCollapsedState();
+    collapsible.style.display = this.isCollapsed ? 'none' : '';
+  }
+
+  loadCollapsedState() {
     try {
-      if (localStorage.getItem('leetcode-sr-collapsed') === 'false') {
-        this.isCollapsed = false;
-        collapsible.style.display = '';
+      const v2 = localStorage.getItem('leetcode-sr-collapsed-v2');
+      if (v2 === 'true' || v2 === 'false') return v2 === 'true';
+
+      // Migrate legacy key (old value was accidentally inverted).
+      const legacy = localStorage.getItem('leetcode-sr-collapsed');
+      if (legacy === 'true' || legacy === 'false') {
+        const migratedCollapsed = legacy === 'false';
+        localStorage.setItem('leetcode-sr-collapsed-v2', String(migratedCollapsed));
+        return migratedCollapsed;
       }
     } catch (e) { /* ignore */ }
+    return true; // first visit: collapsed by default
+  }
+
+  saveCollapsedState() {
+    try { localStorage.setItem('leetcode-sr-collapsed-v2', String(this.isCollapsed)); } catch (e) { /* ignore */ }
   }
 
   toggleCollapse() {
@@ -364,57 +399,85 @@ class LeetCodeHelper {
     const collapsible = document.getElementById('leetcode-sr-collapsible');
     if (collapsible) collapsible.style.display = this.isCollapsed ? 'none' : '';
     if (this.isCollapsed) this.closeTodayPanel();
-    try { localStorage.setItem('leetcode-sr-collapsed', String(!this.isCollapsed)); } catch (e) { /* ignore */ }
+    this.saveCollapsedState();
   }
 
   // ============ 拖拽 ============
   setupDrag(container, handle) {
-    let startX, startY, startRight, startTop;
+    let startMouseX, startMouseY;
+    let startLeft, startRight, startTop;
+    let dragByLeft = false;
     let hasMoved = false;
+    let dragActive = false;
 
     const onMouseDown = (e) => {
       e.preventDefault();
       this.isDragging = false;
       hasMoved = false;
       const rect = container.getBoundingClientRect();
-      startX = e.clientX;
-      startY = e.clientY;
+      startMouseX = e.clientX;
+      startMouseY = e.clientY;
+      startLeft = rect.left;
       startRight = window.innerWidth - rect.right;
       startTop = rect.top;
+      dragByLeft = !!container.style.left && container.style.left !== 'auto';
       container.style.transition = 'none';
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
+      dragActive = true;
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+      window.addEventListener('blur', onMouseUp);
     };
 
     const onMouseMove = (e) => {
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
+      if (!dragActive) return;
+      const dx = e.clientX - startMouseX;
+      const dy = e.clientY - startMouseY;
       if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
         hasMoved = true;
         this.isDragging = true;
       }
       if (!hasMoved) return;
-      const newRight = startRight - dx;
-      const newTop = startTop + dy;
-      const maxRight = window.innerWidth - container.offsetWidth;
-      const maxTop = window.innerHeight - container.offsetHeight;
-      container.style.right = Math.max(0, Math.min(newRight, maxRight)) + 'px';
-      container.style.top = Math.max(0, Math.min(newTop, maxTop)) + 'px';
+
+      const rect = container.getBoundingClientRect();
+      const maxLeft = Math.max(0, window.innerWidth - rect.width);
+      const maxRight = Math.max(0, window.innerWidth - rect.width);
+      const maxTop = Math.max(0, window.innerHeight - rect.height);
+      const targetTop = startTop + dy;
+      if (dragByLeft) {
+        const targetLeft = startLeft + dx;
+        container.style.right = 'auto';
+        container.style.left = Math.max(0, Math.min(targetLeft, maxLeft)) + 'px';
+      } else {
+        const targetRight = startRight - dx;
+        container.style.left = 'auto';
+        container.style.right = Math.max(0, Math.min(targetRight, maxRight)) + 'px';
+      }
+      container.style.top = Math.max(0, Math.min(targetTop, maxTop)) + 'px';
     };
 
     const onMouseUp = () => {
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
+      if (!dragActive) return;
+      dragActive = false;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('blur', onMouseUp);
       container.style.transition = '';
       if (hasMoved) {
         try {
+          const right = (container.style.right && container.style.right !== 'auto')
+            ? (parseInt(container.style.right, 10) || 0)
+            : Math.max(0, Math.round(window.innerWidth - (parseInt(container.style.left, 10) || 0) - container.getBoundingClientRect().width));
+          const top = parseInt(container.style.top, 10) || 0;
+          const rect = container.getBoundingClientRect();
+          const left = Math.max(0, Math.round(window.innerWidth - right - rect.width));
           localStorage.setItem('leetcode-sr-pos', JSON.stringify({
-            top: parseInt(container.style.top),
-            right: parseInt(container.style.right)
+            top,
+            left,
+            right
           }));
         } catch (e) { /* ignore */ }
       }
-      setTimeout(() => { this.isDragging = false; }, 50);
+      this.isDragging = false;
     };
 
     handle.addEventListener('mousedown', onMouseDown);
@@ -423,12 +486,26 @@ class LeetCodeHelper {
   restorePosition(container) {
     try {
       const saved = localStorage.getItem('leetcode-sr-pos');
+      if (!saved) {
+        // First visit default: near top-right corner.
+        container.style.top = '108px';
+        container.style.right = '18px';
+        container.style.left = 'auto';
+        return;
+      }
       if (saved) {
         const pos = JSON.parse(saved);
-        if (pos.top >= 0 && pos.top < window.innerHeight - 50 &&
-            pos.right >= 0 && pos.right < window.innerWidth - 50) {
-          container.style.top = pos.top + 'px';
-          container.style.right = pos.right + 'px';
+        if (Number.isFinite(pos.top) && pos.top >= 0 && pos.top < window.innerHeight - 50) {
+          if (Number.isFinite(pos.right) && pos.right >= 0 && pos.right < window.innerWidth - 50) {
+            container.style.top = pos.top + 'px';
+            container.style.right = pos.right + 'px';
+            container.style.left = 'auto';
+          } else if (Number.isFinite(pos.left) && pos.left >= 0 && pos.left < window.innerWidth - 40) {
+            // Backward compatibility with old stored positions.
+            container.style.top = pos.top + 'px';
+            container.style.left = pos.left + 'px';
+            container.style.right = 'auto';
+          }
         }
       }
     } catch (e) { /* ignore */ }
@@ -514,6 +591,7 @@ class LeetCodeHelper {
           });
           recordRow.appendChild(viewBtn);
         }
+        recordRow.style.display = 'flex';
       } else {
         mainButton.classList.remove('added', 'adding');
         mainButton.dataset.mode = 'add';
@@ -525,6 +603,7 @@ class LeetCodeHelper {
         `;
         const viewBtn = document.getElementById('leetcode-sr-view-btn');
         if (viewBtn) viewBtn.remove();
+        recordRow.style.display = 'none';
       }
       this.localize(document.getElementById('leetcode-sr-container'));
     } catch (error) {
@@ -636,8 +715,7 @@ class LeetCodeHelper {
     modal.innerHTML = `
       <div class="sr-hm-header">
         <div class="sr-hm-brand">
-          <span class="sr-hm-brand-icon">📚</span>
-          <div>
+          <div class="sr-hm-brand-text">
             <div class="sr-hm-title">LeetCode Review Planner</div>
             <div class="sr-hm-subtitle">基于遗忘曲线的智能复习系统</div>
           </div>
@@ -775,14 +853,30 @@ class LeetCodeHelper {
     if (!content) return;
 
     try {
-      const [reviewResp, completedResp] = await Promise.all([
+      const [reviewResp, completedResp, problemsResp] = await Promise.all([
         this.safeSendMessage({ action: 'getTodayReviews' }),
-        this.safeSendMessage({ action: 'getTodayCompleted' })
+        this.safeSendMessage({ action: 'getTodayCompleted' }),
+        this.safeSendMessage({ action: 'getProblems' })
       ]);
       const reviews = reviewResp?.reviews || [];
       const completed = completedResp?.completed || [];
+      const allProblems = problemsResp?.problems || [];
+      const todayStart = this.getStartOfDayTs();
+      const overdueTasks = allProblems
+        .map((p) => {
+          const isCompleted = p.currentInterval >= p.reviewDates.length;
+          if (p.mastered || isCompleted) return null;
+          const nextReview = p.reviewDates[p.currentInterval];
+          if (!nextReview || nextReview >= todayStart) return null;
+          return {
+            ...p,
+            overdueDays: this.getOverdueDays(nextReview)
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => (b.overdueDays - a.overdueDays) || (a.number - b.number));
 
-      if (reviews.length === 0 && completed.length === 0) {
+      if (reviews.length === 0 && completed.length === 0 && overdueTasks.length === 0) {
         content.innerHTML = `
           <div class="sr-hm-empty">
             <div class="sr-hm-empty-icon">🎉</div>
@@ -798,6 +892,28 @@ class LeetCodeHelper {
       if (reviews.length > 0) {
         html += `<div class="sr-hm-section-label pending-label">📋 待复习 (${reviews.length})</div>`;
         html += reviews.map(p => this.createHomeCard(p, 'today')).join('');
+      }
+      html += `<div class="sr-hm-section-label overdue-label">${this.trText(`⏰ 未完成任务 (${overdueTasks.length})`)}</div>`;
+      if (overdueTasks.length > 0) {
+        html += `
+          <div class="sr-hm-overdue-list">
+            ${overdueTasks.map(p => `
+              <div class="sr-hm-overdue-item">
+                <span class="sr-hm-overdue-main">
+                  <span class="sr-hm-overdue-num">#${p.number}</span>
+                  <span class="sr-hm-overdue-title">${p.title}</span>
+                </span>
+                <span class="sr-hm-overdue-days">${this.trText(`逾期 ${p.overdueDays} 天`)}</span>
+                <div class="sr-hm-overdue-actions">
+                  <button class="sr-hm-btn" data-action="open-overdue" data-url="${p.url}" title="打开题目">${this.tr('打开')}</button>
+                  <button class="sr-hm-btn danger" data-action="ignore-overdue" data-slug="${p.slug}" data-index="${p.currentInterval}">${this.tr('忽略')}</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        html += `<div class="sr-hm-overdue-empty">${this.tr('暂无未完成任务')}</div>`;
       }
       if (completed.length > 0) {
         html += `<div class="sr-hm-section-label done-label">✅ 今日已完成 (${completed.length})</div>`;
@@ -1094,6 +1210,12 @@ class LeetCodeHelper {
   }
 
   bindHomeCardEvents(container) {
+    container.querySelectorAll('[data-action="open-overdue"]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (btn.dataset.url) window.location.href = btn.dataset.url;
+      });
+    });
     container.querySelectorAll('[data-action="open-title"]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1114,6 +1236,22 @@ class LeetCodeHelper {
           this.showNotification('已删除', 'info');
           this.refreshHomeIfOpen();
           this.checkProblemStatus();
+        }
+      });
+    });
+    container.querySelectorAll('[data-action="ignore-overdue"]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const slug = btn.dataset.slug;
+        const index = parseInt(btn.dataset.index, 10);
+        const resp = await this.safeSendMessage({ action: 'removeReviewDate', slug, index });
+        if (resp && resp.success) {
+          this.showNotification('已移除', 'info');
+          this.refreshHomeIfOpen();
+          this.checkProblemStatus();
+          this.checkTodayStatus();
+        } else {
+          this.showNotification(resp?.error || '删除失败', 'error');
         }
       });
     });
@@ -1477,7 +1615,7 @@ class LeetCodeHelper {
           </label>
         </div>
         <div class="sr-plan-custom-wrap hidden" id="sr-add-custom-wrap">
-          <input type="text" id="sr-custom-intervals" placeholder="自定义间隔（如: 3,10,30 或 3 10 30）" class="sr-text-input">
+          <input type="text" id="sr-custom-intervals" placeholder="自定义间隔（如: 0,3,10,30 或 0 3 10 30）" class="sr-text-input">
           <div class="sr-plan-custom-hint">支持空格、逗号、分号</div>
         </div>
         <div class="sr-section-title" style="margin-top:16px">添加笔记 <span style="font-weight:400;color:#9ca3af;font-size:12px">（可选）</span></div>
@@ -1658,13 +1796,13 @@ class LeetCodeHelper {
 
     const mergedHistory = [];
     addHistory.forEach(h => {
-      const planLabel = h.planType === 'full' ? '🔥 完整' : (h.planType === 'half' ? '⚡ 精简' : '🧪 自定义');
+      const planLabel = h.planType === 'full'
+        ? this.tr('🔥 完整')
+        : (h.planType === 'half' ? this.tr('⚡ 精简') : this.tr('🧪 自定义'));
       const intervalsLabel = Array.isArray(h.intervals) && h.intervals.length > 0 ? h.intervals.join(' / ') : '-';
       const title = h.type === 'readd' ? 'Re-add Review' : 'Add Review';
-      const addExtraLabel = Number.isInteger(h.extraDays) ? `+${h.extraDays}d` : '';
-      const lineText = addExtraLabel
-        ? `${addExtraLabel} · ${planLabel} · ${intervalsLabel}`
-        : `${planLabel} · ${intervalsLabel}`;
+      const addExtraLabel = Number.isInteger(h.extraDays) ? this.trText(`第${h.extraDays}天`) : '';
+      const lineText = addExtraLabel || `${planLabel} · ${intervalsLabel}`;
       mergedHistory.push({
         timestamp: h.timestamp,
         kind: 'add',
@@ -1758,6 +1896,7 @@ class LeetCodeHelper {
         </div>
       </div>
       <div class="leetcode-sr-modal-footer sr-footer-multi">
+        <button class="sr-btn-home" id="sr-modal-home" title="主页" aria-label="主页"><span class="sr-btn-home-icon">🏠</span></button>
         <button class="sr-btn-master ${isMastered ? 'sr-unmaster' : ''}" id="sr-master">${isMastered ? '取消掌握' : '⭐ 标记掌握'}</button>
         <button class="sr-btn-delete" id="sr-delete">删除题目</button>
       </div>
@@ -1769,6 +1908,10 @@ class LeetCodeHelper {
     this.localize(overlay);
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
+    modal.querySelector('#sr-modal-home').addEventListener('click', () => {
+      this.removeModal();
+      this.showHomeModal();
+    });
     modal.querySelector('#sr-modal-close').addEventListener('click', () => this.removeModal());
 
     modal.querySelectorAll('.sr-future-remove').forEach(btn => {
@@ -1831,7 +1974,7 @@ class LeetCodeHelper {
       </div>
       <div class="leetcode-sr-modal-body">
         <p style="color:#6b7280;font-size:14px;margin-bottom:14px;">输入天数，将在对应天后安排一次复习。</p>
-        <input type="number" id="sr-extra-days" placeholder="天数（如: 7）" class="sr-text-input" min="1" style="font-size:15px;padding:11px 14px;">
+        <input type="number" id="sr-extra-days" placeholder="天数（如: 0）" class="sr-text-input" min="0" style="font-size:15px;padding:11px 14px;">
       </div>
       <div class="leetcode-sr-modal-footer">
         <button class="sr-btn-cancel" id="sr-modal-cancel">取消</button>
@@ -1855,7 +1998,7 @@ class LeetCodeHelper {
 
     modal.querySelector('#sr-extra-confirm').addEventListener('click', async () => {
       const days = parseInt(document.getElementById('sr-extra-days').value);
-      if (!days || days < 1) {
+      if (!Number.isInteger(days) || days < 0) {
         this.showNotification('请输入有效天数', 'info');
         return;
       }
@@ -1905,7 +2048,7 @@ class LeetCodeHelper {
           </label>
         </div>
         <div class="sr-plan-custom-wrap hidden" id="sr-readd-custom-wrap">
-          <input type="text" id="sr-readd-custom-intervals" placeholder="自定义间隔（如: 3,10,30 或 3 10 30）" class="sr-text-input">
+          <input type="text" id="sr-readd-custom-intervals" placeholder="自定义间隔（如: 0,3,10,30 或 0 3 10 30）" class="sr-text-input">
           <div class="sr-plan-custom-hint">支持空格、逗号、分号</div>
         </div>
       </div>

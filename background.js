@@ -242,7 +242,7 @@ class SpacedRepetitionManager {
     if (planType === 'custom' && customIntervals && customIntervals.length > 0) {
       return [...new Set(customIntervals
         .map(v => parseInt(v, 10))
-        .filter(v => Number.isInteger(v) && v > 0)
+        .filter(v => Number.isInteger(v) && v >= 0)
       )].sort((a, b) => a - b);
     }
     const template = this.planTemplates[planType];
@@ -479,6 +479,9 @@ class SpacedRepetitionManager {
 
     if (problemsMap[slug]) {
       const problem = problemsMap[slug];
+      if (!Number.isInteger(days) || days < 0) {
+        return { success: false, error: '请输入有效天数' };
+      }
       const now = Date.now();
       const d = new Date();
       d.setDate(d.getDate() + days);
@@ -553,7 +556,7 @@ class SpacedRepetitionManager {
           }, () => { if (chrome.runtime.lastError) { /* ignore */ } });
         } catch (e) { console.warn('Notification failed:', e); }
         chrome.action.setBadgeText({ text: reviews.length.toString() });
-        chrome.action.setBadgeBackgroundColor({ color: '#6366f1' });
+        chrome.action.setBadgeBackgroundColor({ color: '#1d4ed8' });
       } else {
         chrome.action.setBadgeText({ text: '' });
       }

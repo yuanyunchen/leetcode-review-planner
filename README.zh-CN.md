@@ -20,27 +20,35 @@
 
 
 **A）题目页入口与快捷操作**  
-使用流程从题目页直接开始。先看到右侧折叠入口，展开后即可快速执行加入复习、提交复习和查看记录，避免在多个页面之间来回切换
+使用流程从题目页直接开始。展开右侧浮窗后即可快速加入/提交复习；当日复习面板可一键跳转到当天待复习题目。
 
 <p>
-  <img src="images/01-problem-page-widget-collapsed.png" alt="Problem page - widget collapsed" width="49%" align="middle">
-  <img src="images/02-problem-page-widget-expanded.png" alt="Problem page - widget expanded" width="49%" align="middle">
+  <img src="images/01-problem-page-widget.png" alt="Problem page widget" width="49%" align="middle">
+  <img src="images/02-widget-today-panel.png" alt="Today review panel from widget" width="49%" align="middle">
 </p>
 
-**B）计划设置与记录追踪**  
-加入题目时可以选择完整/精简计划，并记录可选的用时与笔记。之后在记录页可以清晰查看进度、历史提交和后续复习日期，复盘路径一目了然。
+**B）计划设置与复习提交**  
+加入题目时可选择完整/精简/自定义计划，并保存可选的用时与笔记；提交复习时也可在同一弹窗快速记录关键信息。
 
 <p>
-  <img src="images/03-add-to-review-modal.png" alt="Add to review modal" width="49%" align="middle">
-  <img src="images/04-problem-record-modal.png" alt="Problem record modal" width="49%" align="middle">
+  <img src="images/03-add-plan-modal.png" alt="Add to review plan modal" width="49%" align="middle">
+  <img src="images/04-submit-review-modal.png" alt="Submit review modal" width="49%" align="middle">
 </p>
 
-**C）主页管理与个性化配置**  
-主页用于日常集中管理：搜索、标签筛选、打开/提交/删除等操作都可快速完成。设置页用于长期个性化调整，包括语言、界面缩放、间隔模板和数据备份策略。
+**C）记录追踪与题目管理**  
+记录页可查看复习历史、笔记和后续计划；主页“全部题目”支持搜索、标签筛选与快捷操作，方便日常集中管理。
 
 <p>
-  <img src="images/05-home-all-problems.png" alt="Home - all problems" width="49%" align="middle">
-  <img src="images/06-settings-panel.png" alt="Settings panel" width="49%" align="middle">
+  <img src="images/05-problem-record-modal.png" alt="Problem record modal" width="49%" align="middle">
+  <img src="images/06-home-all-problems.png" alt="Home all problems view" width="49%" align="middle">
+</p>
+
+**D）个性化设置与数据统计**  
+设置页可调整语言、默认计划、界面缩放和间隔模板；统计页可快速查看连续天数、平均用时、掌握率和复习活动。
+
+<p>
+  <img src="images/07-home-settings.png" alt="Home settings view" width="49%" align="middle">
+  <img src="images/08-home-statistics.png" alt="Home statistics view" width="49%" align="middle">
 </p>
 
 ## ✨ 功能亮点

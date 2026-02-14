@@ -21,6 +21,17 @@
     "https://leetcode.cn/*",
     "https://www.googleapis.com/*"
   ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*.png"
+      ],
+      "matches": [
+        "https://leetcode.com/*",
+        "https://leetcode.cn/*"
+      ]
+    }
+  ],
   "background": {
     "service_worker": "background.js"
   },
