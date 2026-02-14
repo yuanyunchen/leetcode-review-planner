@@ -16,10 +16,6 @@
 3. 点击 **Load unpacked**
 4. 选择目录：`leetcode-review-helper/`
 
-可选：
-- Google Calendar 同步配置：`SETUP_GUIDE.md`
-- 快速配置说明：`QUICK_START.md`
-
 ## 使用说明
 
 
