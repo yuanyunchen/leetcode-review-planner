@@ -4,7 +4,7 @@ class SpacedRepetitionManager {
   constructor() {
     this.planTemplates = {
       full: { name: '完整复习 (6次)', intervals: [1, 3, 7, 14, 30, 60] },
-      half: { name: '精简复习 (3次)', intervals: [3, 7, 30] },
+      half: { name: '精简复习 (3次)', intervals: [3, 10, 30] },
     };
     this.init();
   }
@@ -177,6 +177,9 @@ class SpacedRepetitionManager {
       }
 
       const intervals = this.getIntervals(planType, customIntervals);
+      if (!intervals || intervals.length === 0) {
+        return { success: false, error: '请输入有效天数' };
+      }
       const reviewDates = this.generateReviewDates(intervals);
       const now = Date.now();
 
@@ -202,6 +205,12 @@ class SpacedRepetitionManager {
         reviewHistory: reviewHistory,
         currentInterval: 0,
         mastered: false,
+        addHistory: [{
+          timestamp: now,
+          type: 'add',
+          planType: planType,
+          intervals: [...intervals]
+        }],
         calendarEventIds: []
       };
 
@@ -215,7 +224,10 @@ class SpacedRepetitionManager {
 
   getIntervals(planType, customIntervals) {
     if (planType === 'custom' && customIntervals && customIntervals.length > 0) {
-      return customIntervals;
+      return [...new Set(customIntervals
+        .map(v => parseInt(v, 10))
+        .filter(v => Number.isInteger(v) && v > 0)
+      )].sort((a, b) => a - b);
     }
     const template = this.planTemplates[planType];
     return template ? template.intervals : this.planTemplates.full.intervals;
@@ -319,7 +331,11 @@ class SpacedRepetitionManager {
 
       if (canConsumePlannedReview) {
         problem.completedReviews.push(now);
-      problem.currentInterval++;
+        problem.currentInterval++;
+        if (problem.currentInterval >= problem.reviewDates.length) {
+          problem.mastered = true;
+          problem.masteredAt = now;
+        }
       }
 
       await chrome.storage.local.set({ problems: problemsMap });
@@ -367,8 +383,14 @@ class SpacedRepetitionManager {
     const storageResult = await chrome.storage.local.get('problems');
     const problemsMap = storageResult.problems || {};
     if (problemsMap[slug]) {
-      problemsMap[slug].mastered = true;
-      problemsMap[slug].masteredAt = Date.now();
+      const problem = problemsMap[slug];
+      problem.mastered = true;
+      problem.masteredAt = Date.now();
+      // 手动标记掌握时清空后续复习计划（保留已完成历史与笔记历史）
+      const completedCount = Math.max(0, Math.min(problem.currentInterval || 0, (problem.reviewDates || []).length));
+      problem.reviewDates = (problem.reviewDates || []).slice(0, completedCount);
+      problem.intervals = (problem.intervals || []).slice(0, completedCount);
+      problem.currentInterval = completedCount;
       await chrome.storage.local.set({ problems: problemsMap });
     }
   }
@@ -390,15 +412,36 @@ class SpacedRepetitionManager {
     if (problemsMap[slug]) {
       const problem = problemsMap[slug];
       const intervals = this.getIntervals(planType, customIntervals);
+      if (!intervals || intervals.length === 0) {
+        return { success: false, error: '请输入有效天数' };
+      }
       const reviewDates = this.generateReviewDates(intervals);
+      const now = Date.now();
+
+      if (!Array.isArray(problem.addHistory)) {
+        problem.addHistory = [];
+      }
+      if (problem.addHistory.length === 0 && problem.addedAt) {
+        problem.addHistory.push({
+          timestamp: problem.addedAt,
+          type: 'add',
+          planType: problem.planType || 'full',
+          intervals: Array.isArray(problem.intervals) ? [...problem.intervals] : []
+        });
+      }
+      problem.addHistory.push({
+        timestamp: now,
+        type: 'readd',
+        planType: planType,
+        intervals: [...intervals]
+      });
 
       problem.planType = planType;
       problem.intervals = intervals;
       problem.reviewDates = reviewDates;
-      problem.completedReviews = [];
       problem.currentInterval = 0;
       problem.mastered = false;
-      problem.addedAt = Date.now();
+      problem.addedAt = now;
       delete problem.masteredAt;
       // reviewHistory is preserved
 
@@ -600,6 +643,19 @@ class SpacedRepetitionManager {
             this.planTemplates[key] = result.planTemplates[key];
           }
         }
+      }
+      // 迁移旧的 light 默认值 [3,7,30] -> [3,10,30]
+      const half = this.planTemplates.half;
+      if (
+        half &&
+        Array.isArray(half.intervals) &&
+        half.intervals.length === 3 &&
+        half.intervals[0] === 3 &&
+        half.intervals[1] === 7 &&
+        half.intervals[2] === 30
+      ) {
+        half.intervals = [3, 10, 30];
+        await this.savePlanTemplates();
       }
     } catch (e) { /* ignore */ }
   }

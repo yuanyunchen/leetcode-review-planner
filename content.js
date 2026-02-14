@@ -106,6 +106,19 @@ class LeetCodeHelper {
     });
   }
 
+  parseCustomIntervals(rawText) {
+    if (!rawText || typeof rawText !== 'string') return [];
+    const tokens = rawText
+      .replace(/[，、；;]/g, ',')
+      .split(/[\s,]+/)
+      .map(t => t.trim())
+      .filter(Boolean);
+    const nums = tokens
+      .map(t => parseInt(t, 10))
+      .filter(n => Number.isInteger(n) && n > 0);
+    return [...new Set(nums)].sort((a, b) => a - b);
+  }
+
   applyScale() {
     const zoom = this.scale;
     const container = document.getElementById('leetcode-sr-container');
@@ -625,7 +638,7 @@ class LeetCodeHelper {
         <div class="sr-hm-brand">
           <span class="sr-hm-brand-icon">📚</span>
           <div>
-            <div class="sr-hm-title">LeetCode 复习计划</div>
+            <div class="sr-hm-title">LeetCode Review Planner</div>
             <div class="sr-hm-subtitle">基于遗忘曲线的智能复习系统</div>
           </div>
         </div>
@@ -1026,7 +1039,7 @@ class LeetCodeHelper {
     const nextDate = nextReview ? new Date(nextReview) : null;
     const isCompleted = problem.currentInterval >= problem.reviewDates.length;
     const isMastered = problem.mastered;
-    const progress = problem.completedReviews.length;
+    const progress = Math.min(problem.currentInterval || 0, problem.reviewDates.length);
     const totalR = problem.reviewDates.length;
     const pct = totalR > 0 ? Math.round((progress / totalR) * 100) : 0;
     const tags = (problem.tags || []).slice(0, 3);
@@ -1045,18 +1058,14 @@ class LeetCodeHelper {
     let actionsHtml = '';
     if (context === 'today') {
       actionsHtml = `
-        <button class="sr-hm-btn primary" data-action="open" data-url="${problem.url}">打开</button>
-        <button class="sr-hm-btn success" data-action="submit" data-slug="${problem.slug}">✅ 提交</button>
+        <button class="sr-hm-btn" data-action="view" data-slug="${problem.slug}">📋 记录</button>
       `;
     } else if (context === 'done') {
       actionsHtml = `
-        <button class="sr-hm-btn" data-action="open" data-url="${problem.url}">打开</button>
         <button class="sr-hm-btn" data-action="view" data-slug="${problem.slug}">📋 记录</button>
       `;
     } else {
       actionsHtml = `
-        <button class="sr-hm-btn" data-action="open" data-url="${problem.url}">打开</button>
-        ${!isCompleted && !isMastered ? `<button class="sr-hm-btn success" data-action="submit" data-slug="${problem.slug}">提交</button>` : ''}
         <button class="sr-hm-btn" data-action="view" data-slug="${problem.slug}">记录</button>
         <button class="sr-hm-btn danger" data-action="delete" data-slug="${problem.slug}">删除</button>
       `;
@@ -1065,7 +1074,7 @@ class LeetCodeHelper {
     return `
       <div class="sr-hm-card ${isMastered ? 'mastered' : ''} ${context === 'done' ? 'done-card' : ''} ${isOverdue ? 'overdue' : ''}">
         <div class="sr-hm-card-header">
-          <div class="sr-hm-card-title">
+          <div class="sr-hm-card-title sr-hm-card-title-link" data-action="open-title" data-url="${problem.url}" title="打开题目">
             <span class="sr-hm-card-num">#${problem.number}</span>
             ${problem.title}
             ${isMastered ? '<span class="sr-hm-badge gold">⭐</span>' : ''}
@@ -1085,16 +1094,10 @@ class LeetCodeHelper {
   }
 
   bindHomeCardEvents(container) {
-    container.querySelectorAll('[data-action="open"]').forEach(btn => {
+    container.querySelectorAll('[data-action="open-title"]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        window.open(btn.dataset.url, '_blank');
-      });
-    });
-    container.querySelectorAll('[data-action="submit"]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.showHomeSubmitDialog(btn.dataset.slug);
+        if (btn.dataset.url) window.location.href = btn.dataset.url;
       });
     });
     container.querySelectorAll('[data-action="view"]').forEach(btn => {
@@ -1468,6 +1471,14 @@ class LeetCodeHelper {
             <input type="radio" name="sr-plan" value="half" ${defaultIsHalf ? 'checked' : ''}>
             <div class="sr-plan-content"><div class="sr-plan-title">⚡ 精简复习 (3次)</div></div>
           </label>
+          <label class="leetcode-sr-plan-option" data-plan="custom">
+            <input type="radio" name="sr-plan" value="custom">
+            <div class="sr-plan-content"><div class="sr-plan-title">🧪 自定义间隔</div></div>
+          </label>
+        </div>
+        <div class="sr-plan-custom-wrap hidden" id="sr-add-custom-wrap">
+          <input type="text" id="sr-custom-intervals" placeholder="自定义间隔（如: 3,10,30 或 3 10 30）" class="sr-text-input">
+          <div class="sr-plan-custom-hint">支持空格、逗号、分号</div>
         </div>
         <div class="sr-section-title" style="margin-top:16px">添加笔记 <span style="font-weight:400;color:#9ca3af;font-size:12px">（可选）</span></div>
         <div class="sr-note-form-compact">
@@ -1495,13 +1506,27 @@ class LeetCodeHelper {
       option.addEventListener('click', () => {
         modal.querySelectorAll('.leetcode-sr-plan-option').forEach(o => o.classList.remove('selected'));
         option.classList.add('selected');
-        option.querySelector('input').checked = true;
+        const input = option.querySelector('input');
+        input.checked = true;
+        const customWrap = modal.querySelector('#sr-add-custom-wrap');
+        if (customWrap) customWrap.classList.toggle('hidden', input.value !== 'custom');
       });
     });
   }
 
   async confirmAddProblem() {
-    const selectedPlan = document.querySelector('input[name="sr-plan"]:checked').value;
+    const selectedPlanInput = document.querySelector('input[name="sr-plan"]:checked');
+    if (!selectedPlanInput) return;
+    const selectedPlan = selectedPlanInput.value;
+    let customIntervals = null;
+    if (selectedPlan === 'custom') {
+      const raw = document.getElementById('sr-custom-intervals')?.value || '';
+      customIntervals = this.parseCustomIntervals(raw);
+      if (customIntervals.length === 0) {
+        this.showNotification('请输入有效天数', 'info');
+        return;
+      }
+    }
     const time = document.getElementById('sr-add-time').value.trim();
     const comment = document.getElementById('sr-add-comment').value.trim();
     this.removeModal();
@@ -1517,7 +1542,7 @@ class LeetCodeHelper {
         action: 'addProblem',
         problem: this.problemInfo,
         planType: selectedPlan,
-        customIntervals: null,
+        customIntervals,
         time: time || null,
         comment: comment || null
       });
@@ -1620,7 +1645,35 @@ class LeetCodeHelper {
     const isCompleted = problem.currentInterval >= problem.reviewDates.length;
     const isMastered = problem.mastered;
     const history = problem.reviewHistory || [];
+    const doneInCurrentPlan = Math.min(problem.currentInterval || 0, problem.reviewDates.length);
     const addedDate = new Date(problem.addedAt).toLocaleDateString();
+    const addHistory = Array.isArray(problem.addHistory) && problem.addHistory.length > 0
+      ? [...problem.addHistory]
+      : (problem.addedAt ? [{
+        timestamp: problem.addedAt,
+        type: 'add',
+        planType: problem.planType || 'full',
+        intervals: Array.isArray(problem.intervals) ? [...problem.intervals] : []
+      }] : []);
+
+    const addHistoryHtml = addHistory.length > 0
+      ? addHistory
+        .sort((a, b) => a.timestamp - b.timestamp)
+        .map(h => {
+          const typeLabel = h.type === 'readd' ? '重新加入' : '加入复习';
+          const planLabel = h.planType === 'full' ? '🔥 完整' : (h.planType === 'half' ? '⚡ 精简' : '🧪 自定义');
+          const intervalsLabel = Array.isArray(h.intervals) && h.intervals.length > 0 ? h.intervals.join(' / ') : '-';
+          return `
+            <div class="sr-history-item">
+              <div class="sr-history-header">
+                <span class="sr-history-num">${typeLabel}</span>
+                <span class="sr-history-date">${new Date(h.timestamp).toLocaleString()}</span>
+              </div>
+              <div class="sr-add-record-line">${planLabel} · ${intervalsLabel}</div>
+            </div>
+          `;
+        }).join('')
+      : '<div class="sr-empty-history">暂无复习记录</div>';
 
     const historyHtml = history.length > 0
       ? history.map(h => {
@@ -1676,10 +1729,13 @@ class LeetCodeHelper {
         </div>
         <div class="sr-detail-stats">
           <div class="sr-detail-stat"><span class="sr-stat-label">加入时间</span><span class="sr-stat-value">${addedDate}</span></div>
-          <div class="sr-detail-stat"><span class="sr-stat-label">复习进度</span><span class="sr-stat-value">${problem.completedReviews.length} / ${problem.reviewDates.length}</span></div>
+          <div class="sr-detail-stat"><span class="sr-stat-label">复习进度</span><span class="sr-stat-value">${doneInCurrentPlan} / ${problem.reviewDates.length}</span></div>
           <div class="sr-detail-stat"><span class="sr-stat-label">状态</span><span class="sr-stat-value">${isMastered ? '⭐ 已掌握' : isCompleted ? '✅ 全部完成' : '📖 复习中'}</span></div>
         </div>
-        <div class="sr-section-title">复习历史</div>
+        <div class="sr-section-title">历史记录</div>
+        <div class="sr-history-subtitle">添加记录</div>
+        <div class="sr-history-list">${addHistoryHtml}</div>
+        <div class="sr-history-subtitle">复习历史</div>
         <div class="sr-history-list">${historyHtml}</div>
         <div class="sr-section-title" style="margin-top:12px">复习计划</div>
         <div class="sr-future-list">${futurePlanHtml}</div>
@@ -1712,14 +1768,12 @@ class LeetCodeHelper {
     });
 
     modal.querySelector('#sr-add-extra').addEventListener('click', () => {
-      this.showAddExtraReviewDialog(problem.slug);
+      this.showAddExtraReviewDialog(problem.slug, true);
     });
 
     modal.querySelector('#sr-readd').addEventListener('click', () => {
-      if (confirm(this.tr('将重置复习进度（历史记录会保留），确定吗？'))) {
-        this.removeModal();
-        this.showReaddModal(problem.slug);
-      }
+      this.removeModal();
+      this.showReaddModal(problem.slug, true);
     });
 
     modal.querySelector('#sr-master').addEventListener('click', async () => {
@@ -1747,7 +1801,7 @@ class LeetCodeHelper {
   }
 
   // ============ 添加复习天数弹窗 ============
-  showAddExtraReviewDialog(slug) {
+  showAddExtraReviewDialog(slug, returnToDetail = false) {
     this.removeModal();
 
     const overlay = document.createElement('div');
@@ -1777,9 +1831,14 @@ class LeetCodeHelper {
     this.modalOverlay = overlay;
     this.localize(overlay);
 
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
-    modal.querySelector('#sr-modal-close').addEventListener('click', () => this.removeModal());
-    modal.querySelector('#sr-modal-cancel').addEventListener('click', () => this.removeModal());
+    const closeDialog = () => {
+      this.removeModal();
+      if (returnToDetail) this.showProblemDetailModal(slug);
+    };
+
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeDialog(); });
+    modal.querySelector('#sr-modal-close').addEventListener('click', closeDialog);
+    modal.querySelector('#sr-modal-cancel').addEventListener('click', closeDialog);
 
     modal.querySelector('#sr-extra-confirm').addEventListener('click', async () => {
       const days = parseInt(document.getElementById('sr-extra-days').value);
@@ -1800,7 +1859,7 @@ class LeetCodeHelper {
   }
 
   // ============ 重新加入弹窗 ============
-  showReaddModal(slug) {
+  showReaddModal(slug, returnToDetail = false) {
     this.removeModal();
     const defaultIsHalf = this.defaultPlan === 'half';
 
@@ -1827,6 +1886,14 @@ class LeetCodeHelper {
             <input type="radio" name="sr-readd-plan" value="half" ${defaultIsHalf ? 'checked' : ''}>
             <div class="sr-plan-content"><div class="sr-plan-title">⚡ 精简复习 (3次)</div></div>
           </label>
+          <label class="leetcode-sr-plan-option" data-plan="custom">
+            <input type="radio" name="sr-readd-plan" value="custom">
+            <div class="sr-plan-content"><div class="sr-plan-title">🧪 自定义间隔</div></div>
+          </label>
+        </div>
+        <div class="sr-plan-custom-wrap hidden" id="sr-readd-custom-wrap">
+          <input type="text" id="sr-readd-custom-intervals" placeholder="自定义间隔（如: 3,10,30 或 3 10 30）" class="sr-text-input">
+          <div class="sr-plan-custom-hint">支持空格、逗号、分号</div>
         </div>
       </div>
       <div class="leetcode-sr-modal-footer">
@@ -1840,25 +1907,45 @@ class LeetCodeHelper {
     this.modalOverlay = overlay;
     this.localize(overlay);
 
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
-    modal.querySelector('#sr-modal-close').addEventListener('click', () => this.removeModal());
-    modal.querySelector('#sr-modal-cancel').addEventListener('click', () => this.removeModal());
+    const closeDialog = () => {
+      this.removeModal();
+      if (returnToDetail) this.showProblemDetailModal(slug);
+    };
+
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeDialog(); });
+    modal.querySelector('#sr-modal-close').addEventListener('click', closeDialog);
+    modal.querySelector('#sr-modal-cancel').addEventListener('click', closeDialog);
 
     modal.querySelectorAll('.leetcode-sr-plan-option').forEach(option => {
       option.addEventListener('click', () => {
         modal.querySelectorAll('.leetcode-sr-plan-option').forEach(o => o.classList.remove('selected'));
         option.classList.add('selected');
-        option.querySelector('input').checked = true;
+        const input = option.querySelector('input');
+        input.checked = true;
+        const customWrap = modal.querySelector('#sr-readd-custom-wrap');
+        if (customWrap) customWrap.classList.toggle('hidden', input.value !== 'custom');
       });
     });
 
     modal.querySelector('#sr-readd-confirm').addEventListener('click', async () => {
-      const selectedPlan = document.querySelector('input[name="sr-readd-plan"]:checked').value;
-      await this.safeSendMessage({ action: 'readdProblem', slug, planType: selectedPlan, customIntervals: null });
+      const selectedPlanInput = document.querySelector('input[name="sr-readd-plan"]:checked');
+      if (!selectedPlanInput) return;
+      const selectedPlan = selectedPlanInput.value;
+      let customIntervals = null;
+      if (selectedPlan === 'custom') {
+        const raw = document.getElementById('sr-readd-custom-intervals')?.value || '';
+        customIntervals = this.parseCustomIntervals(raw);
+        if (customIntervals.length === 0) {
+          this.showNotification('请输入有效天数', 'info');
+          return;
+        }
+      }
+      await this.safeSendMessage({ action: 'readdProblem', slug, planType: selectedPlan, customIntervals });
       this.showNotification('✅ 已重新加入复习计划', 'success');
       this.removeModal();
       this.checkProblemStatus();
       this.refreshHomeIfOpen();
+      if (returnToDetail) this.showProblemDetailModal(slug);
     });
   }
 

@@ -324,7 +324,7 @@ class PopupManager {
     const isCompleted = problem.currentInterval >= problem.reviewDates.length;
     const isMastered = problem.mastered;
     const tags = problem.tags || [];
-    const progress = problem.completedReviews.length;
+    const progress = Math.min(problem.currentInterval || 0, problem.reviewDates.length);
     const total = problem.reviewDates.length;
     const progressPct = total > 0 ? Math.round((progress / total) * 100) : 0;
     const addedDate = new Date(problem.addedAt).toLocaleDateString();
@@ -510,6 +510,7 @@ class PopupManager {
     const addedDate = new Date(problem.addedAt).toLocaleDateString();
     const isCompleted = problem.currentInterval >= problem.reviewDates.length;
     const isMastered = problem.mastered;
+    const doneInCurrentPlan = Math.min(problem.currentInterval || 0, problem.reviewDates.length);
 
     // 复习历史
     let historyHtml = '';
@@ -568,7 +569,7 @@ class PopupManager {
             </div>
             <div class="record-stat">
               <div class="record-stat-label">进度</div>
-              <div class="record-stat-value">${problem.completedReviews.length}/${problem.reviewDates.length}</div>
+              <div class="record-stat-value">${doneInCurrentPlan}/${problem.reviewDates.length}</div>
             </div>
             <div class="record-stat">
               <div class="record-stat-label">状态</div>

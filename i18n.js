@@ -5,7 +5,7 @@
   const SUPPORTED = ['en', 'zh'];
 
   const zhToEn = {
-    'LeetCode 复习计划': 'LeetCode Review Plan',
+    'LeetCode 复习计划': 'LeetCode Review Planner',
     '基于遗忘曲线的智能复习系统': 'Smart spaced repetition based on forgetting curve',
     '总题数': 'Total',
     '待复习': 'Due',
@@ -112,6 +112,8 @@
     '无待复习计划': 'No upcoming reviews',
     '暂无复习记录': 'No review records',
     '加入时间': 'Added',
+    '历史记录': 'History',
+    '添加记录': 'Add Records',
     '进度': 'Progress',
     '复习进度': 'Progress',
     '状态': 'Status',
@@ -135,6 +137,9 @@
     '精简复习 (3次)': 'Light Plan (3)',
     '🔥 完整复习 (6次)': '🔥 Full Plan (6)',
     '⚡ 精简复习 (3次)': '⚡ Light Plan (3)',
+    '🧪 自定义间隔': '🧪 Custom Intervals',
+    '自定义间隔（如: 3,10,30 或 3 10 30）': 'Custom intervals (e.g. 3,10,30 or 3 10 30)',
+    '支持空格、逗号、分号': 'Supports spaces, commas, and semicolons',
     '添加笔记': 'Add Notes',
     '（可选）': '(optional)',
     '用时（如: 25min）': 'Time spent (e.g. 25min)',
@@ -187,6 +192,7 @@
     '📖 复习中': '📖 In Progress',
     '🔥 完整': '🔥 Full',
     '⚡ 精简': '⚡ Light',
+    '🧪 自定义': '🧪 Custom',
     '移除': 'Remove',
     '添加天数': 'Add days',
     '已移除': 'Removed',

@@ -824,6 +824,16 @@ textarea:focus-visible {
   flex-wrap: wrap;
 }
 
+.sr-hm-card-title-link {
+  cursor: pointer;
+  transition: color var(--sr-fast);
+}
+
+.sr-hm-card-title-link:hover {
+  color: #4338ca;
+  text-decoration: underline;
+}
+
 .sr-hm-card-num {
   color: #6366f1;
   font-weight: 700;
@@ -1752,6 +1762,16 @@ textarea:focus-visible {
   color: #1e293b;
 }
 
+.sr-plan-custom-wrap {
+  margin-top: 8px;
+}
+
+.sr-plan-custom-hint {
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
 /* Input */
 .sr-text-input {
   width: 100%;
@@ -1787,6 +1807,13 @@ textarea:focus-visible {
   color: #374151;
   margin-bottom: 8px;
   margin-top: 4px;
+}
+
+.sr-history-subtitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  margin: 8px 0 6px;
 }
 
 /* Modal Footer */
@@ -1914,6 +1941,13 @@ textarea:focus-visible {
 }
 
 .sr-history-comment {
+  font-size: 12px;
+  color: #4b5563;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.sr-add-record-line {
   font-size: 12px;
   color: #4b5563;
   margin-top: 2px;
@@ -2252,6 +2286,10 @@ textarea:focus-visible {
     color: #f3f4f6;
   }
 
+  .sr-hm-card-title-link:hover {
+    color: #c7d2fe;
+  }
+
   .sr-hm-card-meta {
     color: #9ca3af;
   }
@@ -2440,11 +2478,19 @@ textarea:focus-visible {
     color: #f3f4f6;
   }
 
+  .sr-history-subtitle {
+    color: #94a3b8;
+  }
+
   .sr-history-item {
     background: #374151;
   }
 
   .sr-history-comment {
+    color: #d1d5db;
+  }
+
+  .sr-add-record-line {
     color: #d1d5db;
   }
 
