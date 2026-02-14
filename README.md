@@ -51,8 +51,8 @@ When adding a problem, choose Full/Light/Custom intervals and optionally save no
 </p> -->
 
 <p>
-  <img src="images/03-add-plan-modal.png" alt="Add to review plan modal" width="50%" align="middle">
-  <img src="images/05-problem-record-modal.png" alt="Problem record modal" width="50%" align="middle">
+  <img src="images/03-add-plan-modal.png" alt="Add to review plan modal" width="49%" align="middle">
+  <img src="images/05-problem-record-modal.png" alt="Problem record modal" width="49%" align="middle">
 </p>
 
 
