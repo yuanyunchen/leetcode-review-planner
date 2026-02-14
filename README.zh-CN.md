@@ -31,17 +31,17 @@
 加入题目时可选择完整/精简/自定义计划，并保存可选的用时与笔记；提交复习后可在记录页持续追踪历史与进度。
 
 <p>
-  <img src="images/03-add-plan-modal.png" alt="Add to review plan modal" width="32.6%" align="middle">
-  <!-- <img src="images/04-submit-review-modal.png" alt="Submit review modal" width="32.6%" align="middle"> -->
-  <img src="images/05-problem-record-modal.png" alt="Problem record modal" width="32.6%" align="middle">
+  <img src="images/03-add-plan-modal.png" alt="Add to review plan modal" width="49%" align="middle">
+  <img src="images/05-problem-record-modal.png" alt="Problem record modal" width="49%" align="middle">
 </p>
+
 
 **C）主页管理与个性化设置**  
 主页“全部题目”支持搜索、标签筛选与快捷操作，方便日常集中管理；设置页可调整语言、默认计划、界面缩放和间隔模板。
 
 <p>
-  <img src="images/07-home-settings.png" alt="Home settings view" width="49%" align="middle">
   <img src="images/06-home-all-problems.png" alt="Home all problems view" width="49%" align="middle">
+  <img src="images/07-home-settings.png" alt="Home settings view" width="49%" align="middle">
 </p>
 
 ## ✨ 功能亮点

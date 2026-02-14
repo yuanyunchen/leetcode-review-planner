@@ -60,8 +60,8 @@ When adding a problem, choose Full/Light/Custom intervals and optionally save no
 The Home "All Problems" view supports search, tags, and quick actions for daily management. Settings lets you tune language, default plan, UI scale, and interval templates.
 
 <p>
-  <img src="images/07-home-settings.png" alt="Home settings view" width="49%" align="middle">
   <img src="images/06-home-all-problems.png" alt="Home all problems view" width="49%" align="middle">
+  <img src="images/07-home-settings.png" alt="Home settings view" width="49%" align="middle">
 </p>
 
 
