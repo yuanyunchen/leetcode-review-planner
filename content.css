@@ -1855,13 +1855,13 @@ textarea:focus-visible {
 }
 
 .leetcode-sr-plan-option:hover {
-  border-color: #c7d2fe;
-  background: #faf5ff;
+  border-color: #bfdbfe;
+  background: #f8fafc;
 }
 
 .leetcode-sr-plan-option.selected {
-  border-color: #6366f1;
-  background: #eef2ff;
+  border-color: #1d4ed8;
+  background: #eef6ff;
 }
 
 .leetcode-sr-plan-option input[type="radio"] {
@@ -1935,23 +1935,28 @@ textarea:focus-visible {
 }
 
 .sr-footer-multi {
-  justify-content: flex-end;
+  justify-content: flex-start;
   flex-wrap: wrap;
   align-items: center;
+}
+
+.sr-footer-multi .sr-btn-master {
+  margin-left: auto;
 }
 
 .sr-btn-home {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  min-width: 44px;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
   min-height: 34px;
-  padding: 7px 0;
+  padding: 0;
   border: 1px solid #d7e2f2;
   background: #ffffff;
   color: #64748b;
-  border-radius: 9px;
+  border-radius: 6px;
   font-size: 0;
   font-weight: 600;
   cursor: pointer;
@@ -2599,13 +2604,13 @@ textarea:focus-visible {
   }
 
   .leetcode-sr-plan-option:hover {
-    border-color: #6366f1;
-    background: #312e81;
+    border-color: #60a5fa;
+    background: #1e3a8a;
   }
 
   .leetcode-sr-plan-option.selected {
-    background: #312e81;
-    border-color: #6366f1;
+    background: #1e3a8a;
+    border-color: #3b82f6;
   }
 
   .sr-plan-title {
@@ -3134,12 +3139,12 @@ textarea:focus-visible {
 }
 
 .leetcode-sr-main-btn.added {
-  background: linear-gradient(135deg, #2f67c1 0%, #3b82f6 100%);
-  box-shadow: 0 10px 24px rgba(59, 130, 246, 0.28);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 10px 24px rgba(29, 78, 216, 0.28);
 }
 
 .leetcode-sr-main-btn.added:hover {
-  box-shadow: 0 14px 30px rgba(59, 130, 246, 0.34);
+  box-shadow: 0 14px 30px rgba(29, 78, 216, 0.34);
 }
 
 .leetcode-sr-view-btn {
@@ -3147,17 +3152,17 @@ textarea:focus-visible {
   height: 34px;
   min-height: 34px;
   padding: 0 8px;
-  border: 1.5px solid #93c5fd;
-  background: #eaf3ff;
-  color: #245ec6;
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.10);
+  border: 1.5px solid #7eb8fa;
+  background: #eff6ff;
+  color: #1d4ed8;
+  box-shadow: 0 8px 18px rgba(29, 78, 216, 0.10);
 }
 
 .leetcode-sr-view-btn:hover {
-  background: linear-gradient(180deg, #e4efff 0%, #dcebff 100%);
-  border-color: #86b4ff;
-  color: #1e4ea8;
-  box-shadow: 0 12px 22px rgba(37, 99, 235, 0.14);
+  background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%);
+  border-color: #60a5fa;
+  color: #1e40af;
+  box-shadow: 0 12px 22px rgba(29, 78, 216, 0.14);
 }
 
 /* ============ Unified Visual System v2.3 ============ */
