@@ -3004,17 +3004,56 @@ textarea:focus-visible {
 }
 
 /* ============ Floating Widget Unified v2.4 ============ */
-.leetcode-sr-collapsible {
-  gap: 6px;
-}
 
+/* ----- Plugin Button Size Adjustment (edit manually) ----- */
+/* Collapsed panel buttons are ~90% of original. .leetcode-sr-home-btn is unchanged. */
+
+/* Toggle button: the main plugin icon that expands/collapses the floating panel */
 .leetcode-sr-toggle-btn {
-  width: 38px;
-  height: 38px;
+  width: 34px;          /* plugin button size */
+  height: 34px;
   border-radius: var(--sr-radius-md);
   border: none;
   background: rgba(255, 255, 255, 0.95);
   box-shadow: var(--sr-shadow-sm), 0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+
+/* Collapsible panel (shown when toggle is expanded) */
+.leetcode-sr-collapsible {
+  gap: 5px;              /* vertical spacing between buttons */
+  min-width: 111px;       /* width -10% from 123px */
+}
+.leetcode-sr-collapsible .leetcode-sr-today-btn {
+  /* Today's review button | height -5%, width -10% */
+  min-height: 29px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.leetcode-sr-collapsible .leetcode-sr-main-btn {
+  /* Add review / Submit review button | height -5%, width -10% */
+  min-height: 29px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.leetcode-sr-collapsible .leetcode-sr-view-btn {
+  /* View record button | height -5%, width -10% */
+  min-height: 26px;
+  height: 26px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+.leetcode-sr-collapsible .leetcode-sr-today-btn svg,
+.leetcode-sr-collapsible .leetcode-sr-main-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.leetcode-sr-collapsible .leetcode-sr-view-btn svg {
+  width: 12px;
+  height: 12px;
+}
+.leetcode-sr-collapsible .leetcode-sr-btn-row,
+.leetcode-sr-collapsible .leetcode-sr-record-row {
+  gap: 5px;              /* spacing between buttons in same row */
 }
 
 .leetcode-sr-home-btn {
