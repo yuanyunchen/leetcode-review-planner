@@ -862,6 +862,10 @@ class LeetCodeHelper {
       const completed = completedResp?.completed || [];
       const allProblems = problemsResp?.problems || [];
       const todayStart = this.getStartOfDayTs();
+      const tomorrowStart = todayStart + 86400000;
+      const todayAdded = allProblems
+        .filter((p) => p.addedAt >= todayStart && p.addedAt < tomorrowStart)
+        .sort((a, b) => (b.addedAt - a.addedAt) || (a.number - b.number));
       const overdueTasks = allProblems
         .map((p) => {
           const isCompleted = p.currentInterval >= p.reviewDates.length;
@@ -876,7 +880,7 @@ class LeetCodeHelper {
         .filter(Boolean)
         .sort((a, b) => (b.overdueDays - a.overdueDays) || (a.number - b.number));
 
-      if (reviews.length === 0 && completed.length === 0 && overdueTasks.length === 0) {
+      if (reviews.length === 0 && todayAdded.length === 0 && completed.length === 0 && overdueTasks.length === 0) {
         content.innerHTML = `
           <div class="sr-hm-empty">
             <div class="sr-hm-empty-icon">🎉</div>
@@ -889,12 +893,20 @@ class LeetCodeHelper {
       }
 
       let html = '';
+      if (todayAdded.length > 0) {
+        html += `<div class="sr-hm-section-label added-label">${this.trText(`📥 今日添加的题目 (${todayAdded.length})`)}</div>`;
+        html += todayAdded.map(p => this.createHomeCard(p, 'added')).join('');
+      }
       if (reviews.length > 0) {
         html += `<div class="sr-hm-section-label pending-label">📋 待复习 (${reviews.length})</div>`;
         html += reviews.map(p => this.createHomeCard(p, 'today')).join('');
       }
-      html += `<div class="sr-hm-section-label overdue-label">${this.trText(`⏰ 未完成任务 (${overdueTasks.length})`)}</div>`;
+      if (completed.length > 0) {
+        html += `<div class="sr-hm-section-label done-label">✅ 今日已完成 (${completed.length})</div>`;
+        html += completed.map(p => this.createHomeCard(p, 'done')).join('');
+      }
       if (overdueTasks.length > 0) {
+        html += `<div class="sr-hm-section-label overdue-label">${this.trText(`⏰ 未完成任务 (${overdueTasks.length})`)}</div>`;
         html += `
           <div class="sr-hm-overdue-list">
             ${overdueTasks.map(p => `
@@ -912,12 +924,6 @@ class LeetCodeHelper {
             `).join('')}
           </div>
         `;
-      } else {
-        html += `<div class="sr-hm-overdue-empty">${this.tr('暂无未完成任务')}</div>`;
-      }
-      if (completed.length > 0) {
-        html += `<div class="sr-hm-section-label done-label">✅ 今日已完成 (${completed.length})</div>`;
-        html += completed.map(p => this.createHomeCard(p, 'done')).join('');
       }
       content.innerHTML = html;
       this.bindHomeCardEvents(content);
@@ -1176,9 +1182,10 @@ class LeetCodeHelper {
       actionsHtml = `
         <button class="sr-hm-btn" data-action="view" data-slug="${problem.slug}">📋 记录</button>
       `;
-    } else if (context === 'done') {
+    } else if (context === 'done' || context === 'added') {
       actionsHtml = `
-        <button class="sr-hm-btn" data-action="view" data-slug="${problem.slug}">📋 记录</button>
+        <button class="sr-hm-btn" data-action="view" data-slug="${problem.slug}">记录</button>
+        <button class="sr-hm-btn danger" data-action="delete" data-slug="${problem.slug}">删除</button>
       `;
     } else {
       actionsHtml = `
@@ -1188,7 +1195,7 @@ class LeetCodeHelper {
     }
 
     return `
-      <div class="sr-hm-card ${isMastered ? 'mastered' : ''} ${context === 'done' ? 'done-card' : ''} ${isOverdue ? 'overdue' : ''}">
+      <div class="sr-hm-card ${isMastered ? 'mastered' : ''} ${context === 'done' ? 'done-card' : ''} ${context === 'added' ? 'added-card' : ''} ${isOverdue ? 'overdue' : ''}">
         <div class="sr-hm-card-header">
           <div class="sr-hm-card-title sr-hm-card-title-link" data-action="open-title" data-url="${problem.url}" title="打开题目">
             <span class="sr-hm-card-num">#${problem.number}</span>

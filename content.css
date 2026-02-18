@@ -777,6 +777,10 @@ textarea:focus-visible {
   color: #f59e0b;
 }
 
+.sr-hm-section-label.added-label {
+  color: #2563eb;
+}
+
 .sr-hm-section-label.done-label {
   color: #10b981;
   margin-top: 8px;
@@ -797,6 +801,7 @@ textarea:focus-visible {
 .sr-hm-overdue-item {
   width: 100%;
   border: 1px solid #fde68a;
+  border-left: 3px solid #fca5a5;
   background: #fffbeb;
   border-radius: 9px;
   padding: 8px 10px;
@@ -811,6 +816,7 @@ textarea:focus-visible {
 
 .sr-hm-overdue-item:hover {
   border-color: #fbbf24;
+  border-left-color: #ef4444;
   background: #fef3c7;
   transform: translateY(-1px);
 }
@@ -867,8 +873,8 @@ textarea:focus-visible {
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 11px 12px 10px;
-  margin-bottom: 8px;
+  padding: 8px 12px 7px;
+  margin-bottom: 6px;
   transition: transform var(--sr-fast), box-shadow var(--sr-base), border-color var(--sr-base);
 }
 
@@ -883,9 +889,20 @@ textarea:focus-visible {
   opacity: 0.75;
 }
 
+.sr-hm-card.added-card {
+  border-left: 3px solid #93c5fd;
+}
+
+.sr-hm-card.added-card:hover {
+  border-left-color: #2563eb;
+}
+
 .sr-hm-card.done-card {
-  opacity: 0.7;
-  border-left: 3px solid #10b981;
+  border-left: 3px solid #a7f3d0;
+}
+
+.sr-hm-card.done-card:hover {
+  border-left-color: #10b981;
 }
 
 .sr-hm-card.overdue {
@@ -974,7 +991,7 @@ textarea:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 3px;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .sr-hm-card-tag {
@@ -1000,7 +1017,7 @@ textarea:focus-visible {
   gap: 12px;
   font-size: 11px;
   color: #94a3b8;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1010,7 +1027,7 @@ textarea:focus-visible {
   background: #f1f5f9;
   border-radius: 2px;
   overflow: hidden;
-  margin-bottom: 7px;
+  margin-bottom: 5px;
 }
 
 .sr-hm-card-progress-fill {
@@ -1027,8 +1044,8 @@ textarea:focus-visible {
 }
 
 .sr-hm-btn {
-  padding: 5px 11px;
-  min-height: 28px;
+  padding: 3px 9px;
+  min-height: 24px;
   font-size: 11px;
   font-weight: 600;
   border: none;
@@ -1948,15 +1965,15 @@ textarea:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  min-width: 34px;
-  height: 34px;
-  min-height: 34px;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
   padding: 0;
-  border: 1px solid #d7e2f2;
-  background: #ffffff;
-  color: #64748b;
-  border-radius: 6px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 8px;
   font-size: 0;
   font-weight: 600;
   cursor: pointer;
@@ -1970,9 +1987,9 @@ textarea:focus-visible {
 }
 
 .sr-btn-home:hover {
-  background: #f8fafc;
-  border-color: #b8c7dc;
-  color: #334155;
+  background: #dbeafe;
+  border-color: #60a5fa;
+  color: #1e40af;
 }
 
 .sr-btn-cancel {
@@ -3065,16 +3082,22 @@ textarea:focus-visible {
   width: 29px;
   height: 29px;
   border-radius: var(--sr-radius-sm);
-  border: 1px solid #e5e7eb;
-  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
   align-self: flex-end;
   margin-top: 0;
   box-shadow: var(--sr-shadow-sm);
 }
 
-.leetcode-sr-toggle-btn:hover,
+.leetcode-sr-toggle-btn:hover {
+  transform: translateY(-1px) scale(1.03);
+}
+
 .leetcode-sr-home-btn:hover {
   transform: translateY(-1px) scale(1.03);
+  border-color: #60a5fa;
+  background: #dbeafe;
 }
 
 .sr-app-icon {
@@ -3152,17 +3175,17 @@ textarea:focus-visible {
   height: 34px;
   min-height: 34px;
   padding: 0 8px;
-  border: 1.5px solid #7eb8fa;
+  border: 1px solid #bfdbfe;
   background: #eff6ff;
   color: #1d4ed8;
-  box-shadow: 0 8px 18px rgba(29, 78, 216, 0.10);
+  box-shadow: none;
 }
 
 .leetcode-sr-view-btn:hover {
-  background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%);
+  background: #dbeafe;
   border-color: #60a5fa;
   color: #1e40af;
-  box-shadow: 0 12px 22px rgba(29, 78, 216, 0.14);
+  box-shadow: none;
 }
 
 /* ============ Unified Visual System v2.3 ============ */
@@ -3261,15 +3284,15 @@ textarea:focus-visible {
 }
 
 .sr-hm-btn {
-  border: 1px solid #bdd7ff;
-  background: #eaf3ff;
-  color: #245ec6;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .sr-hm-btn:hover {
-  border-color: #86b4ff;
-  background: #dcebff;
-  color: #1e4ea8;
+  border-color: #60a5fa;
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 .sr-hm-btn.danger {
@@ -3286,11 +3309,13 @@ textarea:focus-visible {
 
 .sr-hm-overdue-item {
   border-color: #f5d79a;
+  border-left-color: #fca5a5;
   background: #fff9ee;
 }
 
 .sr-hm-overdue-item:hover {
   border-color: #edc56f;
+  border-left-color: #ef4444;
   background: #fef4dd;
 }
 
