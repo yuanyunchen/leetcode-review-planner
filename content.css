@@ -60,7 +60,7 @@ textarea:focus-visible {
   align-items: center;
   justify-content: center;
   border: none;
-  background: rgba(255, 255, 255, 0.95);
+  background: #ffffff;
   backdrop-filter: blur(6px);
   border-radius: var(--sr-radius-md);
   font-size: 18px;
@@ -209,7 +209,7 @@ textarea:focus-visible {
   height: 30px;
   width: 50%;
   padding: 0 8px;
-  background: rgba(255, 255, 255, 0.95);
+  background: #ffffff;
   border: none;
   border-radius: var(--sr-radius-md);
   font-size: 12px;
@@ -241,7 +241,7 @@ textarea:focus-visible {
   width: 30px;
   height: 30px;
   padding: 0;
-  background: rgba(255, 255, 255, 0.95);
+  background: #ffffff;
   backdrop-filter: blur(6px);
   border: none;
   border-radius: var(--sr-radius-sm);
@@ -2305,12 +2305,12 @@ textarea:focus-visible {
 /* ============ 暗色主题 ============ */
 @media (prefers-color-scheme: dark) {
   .leetcode-sr-toggle-btn {
-    background: rgba(31, 41, 55, 0.95);
+    background: #1f2937;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
   }
 
   .leetcode-sr-view-btn {
-    background: rgba(31, 41, 55, 0.95);
+    background: #1f2937;
     border-color: #4b5563;
     color: #818cf8;
   }
@@ -2321,7 +2321,7 @@ textarea:focus-visible {
   }
 
   .leetcode-sr-home-btn {
-    background: rgba(31, 41, 55, 0.95);
+    background: #1f2937;
     border-color: #4b5563;
   }
 
@@ -3017,7 +3017,7 @@ textarea:focus-visible {
   height: 34px;
   border-radius: var(--sr-radius-md);
   border: none;
-  background: rgba(255, 255, 255, 0.95);
+  background: #ffffff;
   box-shadow: var(--sr-shadow-sm), 0 0 0 1px rgba(15, 23, 42, 0.06);
 }
 
@@ -3064,7 +3064,7 @@ textarea:focus-visible {
   height: 29px;
   border-radius: var(--sr-radius-sm);
   border: none;
-  background: rgba(255, 255, 255, 0.95);
+  background: #ffffff;
   align-self: flex-end;
   margin-top: 0;
   box-shadow: var(--sr-shadow-sm), 0 0 0 1px rgba(15, 23, 42, 0.06);
@@ -3156,7 +3156,7 @@ textarea:focus-visible {
   min-height: 34px;
   padding: 0 8px;
   border: none;
-  background: rgba(255, 255, 255, 0.95);
+  background: #ffffff;
   color: #64748b;
   box-shadow: var(--sr-shadow-sm), 0 0 0 1px rgba(15, 23, 42, 0.06);
 }
