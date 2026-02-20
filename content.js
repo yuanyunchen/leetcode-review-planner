@@ -14,6 +14,7 @@ class LeetCodeHelper {
     this.defaultPlan = 'full';
     this.uiLanguage = 'en';
     this.homeCurrentTab = 'today';
+    this.homeTodayDate = null;
     this.homeAllProblems = [];
     this.homeSearchQuery = '';
     this.homeActiveTag = null;
@@ -638,7 +639,7 @@ class LeetCodeHelper {
 
     this.todayPanelOpen = true;
     panel.classList.remove('hidden');
-    panel.innerHTML = `<div class="sr-today-loading">加载中...</div>`;
+    panel.innerHTML = `<div class="sr-today-loading">${this.tr('加载中...')}</div>`;
     await this.refreshTodayPanel();
   }
 
@@ -655,18 +656,18 @@ class LeetCodeHelper {
       if (reviews.length === 0) {
         panel.innerHTML = `
           <div class="sr-today-header">
-            <span>📋 当日复习</span>
+            <span>${this.tr('📋 当日复习')}</span>
             <button class="sr-today-close" id="sr-today-close">✕</button>
           </div>
           <div class="sr-today-empty">
             <div class="sr-today-done-icon">🎉</div>
-            <div>已完成所有复习任务！</div>
+            <div>${this.tr('已完成所有复习任务！')}</div>
           </div>
         `;
       } else {
         const itemsHtml = reviews.map(p => {
           const intervalDay = (p.intervals || [])[p.currentInterval];
-          const dayLabel = intervalDay != null ? `第${intervalDay}天` : '';
+          const dayLabel = intervalDay != null ? this.trText(`第${intervalDay}天`) : '';
           return `
             <div class="sr-today-item" data-url="${p.url}">
               <span class="sr-today-num">#${p.number}</span>
@@ -677,7 +678,7 @@ class LeetCodeHelper {
         }).join('');
         panel.innerHTML = `
           <div class="sr-today-header">
-            <span>📋 当日复习 (${reviews.length})</span>
+            <span>${this.trText(`📋 当日复习 (${reviews.length})`)}</span>
             <button class="sr-today-close" id="sr-today-close">✕</button>
           </div>
           <div class="sr-today-list">${itemsHtml}</div>
@@ -786,6 +787,7 @@ class LeetCodeHelper {
     });
 
     this.homeCurrentTab = 'today';
+    this.homeTodayDate = this.getStartOfDayTs();
     this.loadHomeStats();
     this.loadHomeTab('today');
   }
@@ -847,63 +849,254 @@ class LeetCodeHelper {
     else if (tab === 'stats') this.loadHomeStatsTab();
   }
 
+  // ============ Date Navigation ============
+  _buildDateNav() {
+    if (!this.homeTodayDate) this.homeTodayDate = this.getStartOfDayTs();
+    const viewDate = new Date(this.homeTodayDate);
+    const realToday = this.getStartOfDayTs();
+    const isToday = this.homeTodayDate === realToday;
+    const mm = String(viewDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(viewDate.getDate()).padStart(2, '0');
+    const displayDate = `${mm}/${dd}`;
+    const todayLabel = isToday ? ` · ${this.tr('今天')}` : '';
+    return `
+      <div class="sr-date-nav">
+        <button class="sr-date-arrow" id="sr-date-prev" title="${this.tr('前一天')}">‹</button>
+        <span class="sr-date-label" id="sr-date-label" title="${this.tr('点击选择日期')}">${displayDate}${todayLabel}</span>
+        <button class="sr-date-arrow" id="sr-date-next" title="${this.tr('后一天')}" ${isToday ? 'disabled' : ''}>›</button>
+      </div>
+    `;
+  }
+
+  _buildMiniCalendar(year, month, problems) {
+    const realToday = this.getStartOfDayTs();
+    const realTodayDate = new Date(realToday);
+    const selectedDate = new Date(this.homeTodayDate);
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const isEn = this.uiLanguage === 'en';
+    const monthNames = isEn
+      ? ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+      : ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+    const dowLabels = isEn
+      ? ['Su','Mo','Tu','We','Th','Fr','Sa']
+      : ['日','一','二','三','四','五','六'];
+    const titleText = isEn ? `${monthNames[month]} ${year}` : `${year}年${monthNames[month]}`;
+
+    const activityMap = {};
+    (problems || []).forEach(p => {
+      if (p.addedAt) {
+        const d = new Date(p.addedAt);
+        const k = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        activityMap[k] = (activityMap[k] || 0) + 1;
+      }
+      (p.completedReviews || []).forEach(ts => {
+        const d = new Date(ts);
+        const k = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        activityMap[k] = (activityMap[k] || 0) + 1;
+      });
+    });
+
+    const canGoNext = !(year === realTodayDate.getFullYear() && month === realTodayDate.getMonth());
+    let html = `<div class="sr-cal-wrap"><div class="sr-cal">`;
+    html += `<div class="sr-cal-header">`;
+    html += `<button class="sr-cal-nav" data-cal-action="prev-month">‹</button>`;
+    html += `<span class="sr-cal-title">${titleText}</span>`;
+    html += `<button class="sr-cal-nav" data-cal-action="next-month" ${canGoNext ? '' : 'disabled style="opacity:0.3;pointer-events:none"'}>›</button>`;
+    html += `</div>`;
+    html += `<div class="sr-cal-grid">`;
+    dowLabels.forEach(d => { html += `<div class="sr-cal-dow">${d}</div>`; });
+
+    for (let i = 0; i < firstDay; i++) {
+      html += `<div class="sr-cal-day empty"></div>`;
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayDate = new Date(year, month, day);
+      dayDate.setHours(0, 0, 0, 0);
+      const dayTs = dayDate.getTime();
+      const isFuture = dayTs > realToday;
+      const isSelectedDay = dayDate.getFullYear() === selectedDate.getFullYear() &&
+        dayDate.getMonth() === selectedDate.getMonth() && dayDate.getDate() === selectedDate.getDate();
+      const isTodayDay = dayDate.getFullYear() === realTodayDate.getFullYear() &&
+        dayDate.getMonth() === realTodayDate.getMonth() && dayDate.getDate() === realTodayDate.getDate();
+      const aKey = `${year}-${month}-${day}`;
+      const count = activityMap[aKey] || 0;
+      let heatClass = '';
+      if (!isFuture && count > 0) {
+        if (count >= 8) heatClass = 'heat-7';
+        else if (count >= 6) heatClass = 'heat-6';
+        else if (count === 5) heatClass = 'heat-5';
+        else if (count === 4) heatClass = 'heat-4';
+        else if (count === 3) heatClass = 'heat-3';
+        else if (count === 2) heatClass = 'heat-2';
+        else heatClass = 'heat-1';
+      }
+      const classes = ['sr-cal-day'];
+      if (isFuture) classes.push('future');
+      if (isTodayDay) classes.push('today');
+      if (isSelectedDay) classes.push('selected');
+      if (heatClass) classes.push(heatClass);
+      html += `<div class="${classes.join(' ')}" data-cal-day="${day}">${day}</div>`;
+    }
+    html += `</div></div></div>`;
+    return html;
+  }
+
+  _bindDateNavEvents(problems) {
+    const prev = document.getElementById('sr-date-prev');
+    const next = document.getElementById('sr-date-next');
+    const label = document.getElementById('sr-date-label');
+    if (prev) prev.addEventListener('click', () => {
+      this.homeTodayDate -= 86400000;
+      this.loadHomeTodayTab();
+    });
+    if (next) next.addEventListener('click', () => {
+      const realToday = this.getStartOfDayTs();
+      if (this.homeTodayDate < realToday) {
+        this.homeTodayDate += 86400000;
+        if (this.homeTodayDate > realToday) this.homeTodayDate = realToday;
+        this.loadHomeTodayTab();
+      }
+    });
+    if (label) {
+      label.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._toggleMiniCalendar(problems);
+      });
+    }
+  }
+
+  _toggleMiniCalendar(problems) {
+    const nav = document.querySelector('.sr-date-nav');
+    if (!nav) return;
+    const existing = nav.querySelector('.sr-cal-wrap');
+    if (existing) { existing.remove(); return; }
+    const viewDate = new Date(this.homeTodayDate);
+    this._calViewYear = viewDate.getFullYear();
+    this._calViewMonth = viewDate.getMonth();
+    this._renderCalendarInNav(problems);
+  }
+
+  _renderCalendarInNav(problems) {
+    const nav = document.querySelector('.sr-date-nav');
+    if (!nav) return;
+    const old = nav.querySelector('.sr-cal-wrap');
+    if (old) old.remove();
+    const calHtml = this._buildMiniCalendar(this._calViewYear, this._calViewMonth, problems);
+    nav.insertAdjacentHTML('beforeend', calHtml);
+
+    const wrap = nav.querySelector('.sr-cal-wrap');
+    if (!wrap) return;
+
+    wrap.addEventListener('click', (e) => e.stopPropagation());
+
+    wrap.querySelectorAll('[data-cal-action="prev-month"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this._calViewMonth--;
+        if (this._calViewMonth < 0) { this._calViewMonth = 11; this._calViewYear--; }
+        this._renderCalendarInNav(problems);
+      });
+    });
+    wrap.querySelectorAll('[data-cal-action="next-month"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this._calViewMonth++;
+        if (this._calViewMonth > 11) { this._calViewMonth = 0; this._calViewYear++; }
+        this._renderCalendarInNav(problems);
+      });
+    });
+    wrap.querySelectorAll('.sr-cal-day:not(.empty):not(.future)').forEach(cell => {
+      cell.addEventListener('click', () => {
+        const day = +cell.dataset.calDay;
+        const d = new Date(this._calViewYear, this._calViewMonth, day);
+        d.setHours(0, 0, 0, 0);
+        this.homeTodayDate = d.getTime();
+        this.loadHomeTodayTab();
+      });
+    });
+
+    const closeHandler = (e) => {
+      if (!wrap.contains(e.target) && e.target.id !== 'sr-date-label') {
+        wrap.remove();
+        document.removeEventListener('click', closeHandler);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', closeHandler), 0);
+  }
+
   // ============ 今日题目 Tab ============
   async loadHomeTodayTab() {
     const content = document.getElementById('sr-hm-content');
     if (!content) return;
+    if (!this.homeTodayDate) this.homeTodayDate = this.getStartOfDayTs();
 
     try {
-      const [reviewResp, completedResp, problemsResp] = await Promise.all([
-        this.safeSendMessage({ action: 'getTodayReviews' }),
-        this.safeSendMessage({ action: 'getTodayCompleted' }),
-        this.safeSendMessage({ action: 'getProblems' })
-      ]);
-      const reviews = reviewResp?.reviews || [];
-      const completed = completedResp?.completed || [];
+      const problemsResp = await this.safeSendMessage({ action: 'getProblems' });
       const allProblems = problemsResp?.problems || [];
-      const todayStart = this.getStartOfDayTs();
-      const tomorrowStart = todayStart + 86400000;
-      const todayAdded = allProblems
-        .filter((p) => p.addedAt >= todayStart && p.addedAt < tomorrowStart)
-        .sort((a, b) => (b.addedAt - a.addedAt) || (a.number - b.number));
-      const overdueTasks = allProblems
-        .map((p) => {
-          const isCompleted = p.currentInterval >= p.reviewDates.length;
-          if (p.mastered || isCompleted) return null;
-          const nextReview = p.reviewDates[p.currentInterval];
-          if (!nextReview || nextReview >= todayStart) return null;
-          return {
-            ...p,
-            overdueDays: this.getOverdueDays(nextReview)
-          };
-        })
-        .filter(Boolean)
-        .sort((a, b) => (b.overdueDays - a.overdueDays) || (a.number - b.number));
+      const dayStart = this.homeTodayDate;
+      const dayEnd = dayStart + 86400000;
+      const realToday = this.getStartOfDayTs();
+      const isToday = dayStart === realToday;
 
-      if (reviews.length === 0 && todayAdded.length === 0 && completed.length === 0 && overdueTasks.length === 0) {
+      const addedThisDay = allProblems
+        .filter((p) => p.addedAt >= dayStart && p.addedAt < dayEnd)
+        .sort((a, b) => (b.addedAt - a.addedAt) || (a.number - b.number));
+
+      const completedThisDay = allProblems
+        .filter(p => (p.completedReviews || []).some(ts => ts >= dayStart && ts < dayEnd));
+
+      let reviews = [];
+      let overdueTasks = [];
+      if (isToday) {
+        const [reviewResp, completedResp] = await Promise.all([
+          this.safeSendMessage({ action: 'getTodayReviews' }),
+          this.safeSendMessage({ action: 'getTodayCompleted' })
+        ]);
+        reviews = reviewResp?.reviews || [];
+        const todayCompletedFromMsg = completedResp?.completed || [];
+        if (todayCompletedFromMsg.length > completedThisDay.length) {
+          completedThisDay.length = 0;
+          completedThisDay.push(...todayCompletedFromMsg);
+        }
+        overdueTasks = allProblems
+          .map((p) => {
+            const isCompleted = p.currentInterval >= p.reviewDates.length;
+            if (p.mastered || isCompleted) return null;
+            const nextReview = p.reviewDates[p.currentInterval];
+            if (!nextReview || nextReview >= dayStart) return null;
+            return { ...p, overdueDays: this.getOverdueDays(nextReview) };
+          })
+          .filter(Boolean)
+          .sort((a, b) => (b.overdueDays - a.overdueDays) || (a.number - b.number));
+      }
+
+      const dateNavHtml = this._buildDateNav();
+
+      if (reviews.length === 0 && addedThisDay.length === 0 && completedThisDay.length === 0 && overdueTasks.length === 0) {
         content.innerHTML = `
+          ${dateNavHtml}
           <div class="sr-hm-empty">
             <div class="sr-hm-empty-icon">🎉</div>
             <div class="sr-hm-empty-text">今天没有复习任务</div>
             <div class="sr-hm-empty-sub">继续保持！</div>
           </div>
         `;
+        this._bindDateNavEvents(allProblems);
         this.localize(content);
         return;
       }
 
-      let html = '';
-      if (todayAdded.length > 0) {
-        html += `<div class="sr-hm-section-label added-label">${this.trText(`📥 今日添加的题目 (${todayAdded.length})`)}</div>`;
-        html += todayAdded.map(p => this.createHomeCard(p, 'added')).join('');
+      let html = dateNavHtml;
+      if (addedThisDay.length > 0) {
+        html += `<div class="sr-hm-section-label added-label">${this.trText(`📥 今日添加的题目 (${addedThisDay.length})`)}</div>`;
+        html += addedThisDay.map(p => this.createHomeCard(p, 'added')).join('');
       }
       if (reviews.length > 0) {
         html += `<div class="sr-hm-section-label pending-label">📋 待复习 (${reviews.length})</div>`;
         html += reviews.map(p => this.createHomeCard(p, 'today')).join('');
       }
-      if (completed.length > 0) {
-        html += `<div class="sr-hm-section-label done-label">✅ 今日已完成 (${completed.length})</div>`;
-        html += completed.map(p => this.createHomeCard(p, 'done')).join('');
+      if (completedThisDay.length > 0) {
+        html += `<div class="sr-hm-section-label done-label">${this.trText(`✅ 今日已完成 (${completedThisDay.length})`)}</div>`;
+        html += completedThisDay.map(p => this.createHomeCard(p, 'done')).join('');
       }
       if (overdueTasks.length > 0) {
         html += `<div class="sr-hm-section-label overdue-label">${this.trText(`⏰ 未完成任务 (${overdueTasks.length})`)}</div>`;
@@ -926,6 +1119,7 @@ class LeetCodeHelper {
         `;
       }
       content.innerHTML = html;
+      this._bindDateNavEvents(allProblems);
       this.bindHomeCardEvents(content);
       this.localize(content);
     } catch (error) {

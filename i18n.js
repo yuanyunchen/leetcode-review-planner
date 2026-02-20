@@ -54,6 +54,7 @@
     '🗑️ 清空所有数据': '🗑️ Clear All Data',
     '展开/折叠': 'Expand/Collapse',
     '当日复习': 'Today Review',
+    '📋 当日复习': '📋 Today Review',
     '当日复习 ✓': 'Today Review ✓',
     '加入复习': 'Add Review',
     '📚 加入复习计划': '📚 Add to Review Plan',
