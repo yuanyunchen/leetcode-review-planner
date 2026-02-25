@@ -10,8 +10,7 @@ class SpacedRepetitionManager {
   }
 
   init() {
-    // Load saved plan templates
-    this.loadPlanTemplates();
+    this._planTemplatesReady = this.loadPlanTemplates();
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       this.handleMessage(request, sender, sendResponse);
@@ -123,6 +122,7 @@ class SpacedRepetitionManager {
           break;
         }
         case 'getPlanTemplates': {
+          await this._planTemplatesReady;
           sendResponse({ templates: this.planTemplates });
           break;
         }
@@ -674,26 +674,25 @@ class SpacedRepetitionManager {
 
   async loadPlanTemplates() {
     try {
-      const result = await chrome.storage.local.get('planTemplates');
+      const result = await chrome.storage.local.get(['planTemplates', 'planMigrationV1Done']);
       if (result.planTemplates) {
-        // Merge saved templates with defaults
         for (const key of Object.keys(result.planTemplates)) {
           if (this.planTemplates[key]) {
             this.planTemplates[key] = result.planTemplates[key];
           }
         }
       }
-      // 迁移 light 模板：把旧的 7 天统一替换为 10 天
-      const half = this.planTemplates.half;
-      if (half && Array.isArray(half.intervals)) {
-        const before = JSON.stringify(half.intervals);
-        half.intervals = half.intervals.map(v => (v === 7 ? 10 : v));
-        half.intervals = [...new Set(half.intervals)].sort((a, b) => a - b);
-        this.planTemplates.half.name = this.planTemplates.half.name.replace(/\(\d+次\)/, `(${half.intervals.length}次)`);
-        const after = JSON.stringify(half.intervals);
-        if (before !== after) {
+      if (!result.planMigrationV1Done && !result.planTemplates) {
+        const half = this.planTemplates.half;
+        if (half && Array.isArray(half.intervals)) {
+          half.intervals = half.intervals.map(v => (v === 7 ? 10 : v));
+          half.intervals = [...new Set(half.intervals)].sort((a, b) => a - b);
+          this.planTemplates.half.name = this.planTemplates.half.name.replace(/\(\d+次\)/, `(${half.intervals.length}次)`);
           await this.savePlanTemplates();
         }
+        await chrome.storage.local.set({ planMigrationV1Done: true });
+      } else if (!result.planMigrationV1Done) {
+        await chrome.storage.local.set({ planMigrationV1Done: true });
       }
     } catch (e) { /* ignore */ }
   }

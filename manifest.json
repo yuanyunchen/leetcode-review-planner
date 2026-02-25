@@ -38,8 +38,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://leetcode.com/problems/*",
-        "https://leetcode.cn/problems/*"
+        "https://leetcode.com/*",
+        "https://leetcode.cn/*"
       ],
       "js": ["i18n.js", "content.js"],
       "css": ["content.css"],

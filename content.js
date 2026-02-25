@@ -164,10 +164,11 @@ class LeetCodeHelper {
     window.addEventListener('popstate', () => this.onURLChange());
 
     let debounceTimer = null;
+    let lastPath = window.location.pathname;
     const observer = new MutationObserver(() => {
-      const urlMatch = window.location.pathname.match(/\/problems\/([^\/]+)/);
-      const newSlug = urlMatch ? urlMatch[1] : '';
-      if (newSlug && newSlug !== this.currentSlug) {
+      const currentPath = window.location.pathname;
+      if (currentPath !== lastPath) {
+        lastPath = currentPath;
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => this.onURLChange(), 500);
       }
@@ -178,13 +179,28 @@ class LeetCodeHelper {
   onURLChange() {
     const urlMatch = window.location.pathname.match(/\/problems\/([^\/]+)/);
     const newSlug = urlMatch ? urlMatch[1] : '';
+    this.updateProblemButtonsVisibility();
     if (newSlug && newSlug !== this.currentSlug) {
       this.currentSlug = newSlug;
       setTimeout(() => {
         this.extractProblemInfo();
         this.updateFloatingButton();
       }, 1000);
+    } else if (!newSlug && this.currentSlug) {
+      this.currentSlug = '';
     }
+  }
+
+  isOnProblemPage() {
+    return /\/problems\/[^\/]+/.test(window.location.pathname);
+  }
+
+  updateProblemButtonsVisibility() {
+    const onProblem = this.isOnProblemPage();
+    const btnRow = document.getElementById('leetcode-sr-btn-row');
+    const recordRow = document.getElementById('leetcode-sr-record-row');
+    if (btnRow) btnRow.style.display = onProblem ? '' : 'none';
+    if (recordRow) recordRow.style.display = onProblem ? recordRow.style.display : 'none';
   }
 
   // ============ 题目信息提取 ============
@@ -193,6 +209,16 @@ class LeetCodeHelper {
     const urlMatch = window.location.pathname.match(/\/problems\/([^\/]+)/);
     const slug = urlMatch ? urlMatch[1] : '';
     this.currentSlug = slug;
+
+    if (!slug) {
+      this.problemInfo = {
+        number: '', title: '', slug: '', difficulty: '',
+        tags: [], url: window.location.href,
+        site: isCN ? 'leetcode.cn' : 'leetcode.com',
+        timestamp: Date.now()
+      };
+      return;
+    }
 
     let title = '', difficulty = '', number = '';
 
@@ -397,14 +423,16 @@ class LeetCodeHelper {
     this.localize(container);
 
     this.setupDrag(container, toggleBtn);
-    this.checkProblemStatus();
-    this.checkTodayStatus();
     this.floatingButton = container;
     this.restorePosition(container);
+    this.updateProblemButtonsVisibility();
+    if (this.isOnProblemPage()) {
+      this.checkProblemStatus();
+    }
+    this.checkTodayStatus();
 
-    // 首次默认折叠；后续从本地状态恢复
-    this.isCollapsed = this.loadCollapsedState();
-    collapsible.style.display = this.isCollapsed ? 'none' : '';
+    this.isCollapsed = true;
+    collapsible.style.display = 'none';
   }
 
   loadCollapsedState() {
@@ -584,6 +612,7 @@ class LeetCodeHelper {
   }
 
   async checkProblemStatus() {
+    if (!this.isOnProblemPage() || !this.problemInfo || !this.problemInfo.slug) return;
     try {
       const response = await this.safeSendMessage({ action: 'checkProblem', slug: this.problemInfo.slug });
       if (!response) return;
