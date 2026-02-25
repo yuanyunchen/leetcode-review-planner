@@ -362,6 +362,19 @@ textarea:focus-visible {
   white-space: nowrap;
 }
 
+.sr-today-last {
+  font-size: 9px;
+  font-weight: 700;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
 .sr-today-empty {
   text-align: center;
   padding: 24px 16px;
@@ -1087,6 +1100,14 @@ textarea:focus-visible {
 
 .sr-hm-card.added-card:hover {
   border-left-color: #2563eb;
+}
+
+.sr-hm-card.due-card {
+  border-left: 3px solid #fed7aa;
+}
+
+.sr-hm-card.due-card:hover {
+  border-left-color: #f59e0b;
 }
 
 .sr-hm-card.done-card {
@@ -2557,6 +2578,12 @@ textarea:focus-visible {
   .sr-today-day {
     background: #451a03;
     color: #fbbf24;
+  }
+
+  .sr-today-last {
+    color: #f87171;
+    background: #450a0a;
+    border-color: #7f1d1d;
   }
 
   .sr-home-modal {

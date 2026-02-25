@@ -665,13 +665,18 @@ class LeetCodeHelper {
           </div>
         `;
       } else {
+        const todayStart = this.getStartOfDayTs();
         const itemsHtml = reviews.map(p => {
-          const intervalDay = (p.intervals || [])[p.currentInterval];
-          const dayLabel = intervalDay != null ? this.trText(`第${intervalDay}天`) : '';
+          const baseTs = p.planBaseAt || p.addedAt || 0;
+          const daysSinceAdd = baseTs ? Math.round((todayStart - this.getStartOfDayTs(baseTs)) / 86400000) : null;
+          const dayLabel = daysSinceAdd != null ? this.trText(`第${daysSinceAdd}天`) : '';
+          const isLast = p.currentInterval === (p.reviewDates || []).length - 1;
+          const lastBadge = isLast ? `<span class="sr-today-last">${this.tr('最后一次')}</span>` : '';
           return `
             <div class="sr-today-item" data-url="${p.url}">
               <span class="sr-today-num">#${p.number}</span>
               <span class="sr-today-title">${p.title}</span>
+              ${lastBadge}
               <span class="sr-today-day">${dayLabel}</span>
             </div>
           `;
@@ -1087,19 +1092,19 @@ class LeetCodeHelper {
 
       let html = dateNavHtml;
       if (addedThisDay.length > 0) {
-        html += `<div class="sr-hm-section-label added-label">${this.trText(`📥 今日添加的题目 (${addedThisDay.length})`)}</div>`;
+        html += `<div class="sr-hm-section-label added-label">${this.trText(`📥 已添加 (${addedThisDay.length})`)}</div>`;
         html += addedThisDay.map(p => this.createHomeCard(p, 'added')).join('');
       }
       if (reviews.length > 0) {
-        html += `<div class="sr-hm-section-label pending-label">📋 待复习 (${reviews.length})</div>`;
+        html += `<div class="sr-hm-section-label pending-label">${this.trText(`📋 待复习 (${reviews.length})`)}</div>`;
         html += reviews.map(p => this.createHomeCard(p, 'today')).join('');
       }
       if (completedThisDay.length > 0) {
-        html += `<div class="sr-hm-section-label done-label">${this.trText(`✅ 今日已完成 (${completedThisDay.length})`)}</div>`;
+        html += `<div class="sr-hm-section-label done-label">${this.trText(`✅ 已完成 (${completedThisDay.length})`)}</div>`;
         html += completedThisDay.map(p => this.createHomeCard(p, 'done')).join('');
       }
       if (overdueTasks.length > 0) {
-        html += `<div class="sr-hm-section-label overdue-label">${this.trText(`⏰ 未完成任务 (${overdueTasks.length})`)}</div>`;
+        html += `<div class="sr-hm-section-label overdue-label">${this.trText(`⏰ 未完成 (${overdueTasks.length})`)}</div>`;
         html += `
           <div class="sr-hm-overdue-list">
             ${overdueTasks.map(p => `
@@ -1389,7 +1394,7 @@ class LeetCodeHelper {
     }
 
     return `
-      <div class="sr-hm-card ${isMastered ? 'mastered' : ''} ${context === 'done' ? 'done-card' : ''} ${context === 'added' ? 'added-card' : ''} ${isOverdue ? 'overdue' : ''}">
+      <div class="sr-hm-card ${isMastered ? 'mastered' : ''} ${context === 'done' ? 'done-card' : ''} ${context === 'added' ? 'added-card' : ''} ${context === 'today' ? 'due-card' : ''} ${isOverdue ? 'overdue' : ''}">
         <div class="sr-hm-card-header">
           <div class="sr-hm-card-title sr-hm-card-title-link" data-action="open-title" data-url="${problem.url}" title="打开题目">
             <span class="sr-hm-card-num">#${problem.number}</span>
@@ -2042,19 +2047,17 @@ class LeetCodeHelper {
       : '<div class="sr-empty-history">暂无复习记录</div>';
 
     const futureItems = [];
+    const planBase = new Date(problem.planBaseAt || problem.addedAt || Date.now());
+    planBase.setHours(0, 0, 0, 0);
+    const planBaseMs = planBase.getTime();
     for (let i = problem.currentInterval; i < problem.reviewDates.length; i++) {
       const date = new Date(problem.reviewDates[i]);
-      const intervalDay = (problem.intervals || [])[i];
-      const dayDiff = Number.isInteger(intervalDay)
-        ? intervalDay
-        : Math.max(0, Math.floor(
-          ((new Date(problem.reviewDates[i]).setHours(0, 0, 0, 0)) -
-          (new Date(problem.planBaseAt || problem.addedAt || Date.now()).setHours(0, 0, 0, 0))) /
-          (1000 * 60 * 60 * 24)
-        ));
+      const reviewDay = new Date(problem.reviewDates[i]);
+      reviewDay.setHours(0, 0, 0, 0);
+      const dayDiff = Math.max(0, Math.round((reviewDay.getTime() - planBaseMs) / 86400000));
       futureItems.push(`
         <div class="sr-future-item">
-          <span class="sr-future-day">第${dayDiff}天</span>
+          <span class="sr-future-day">${this.trText(`第${dayDiff}天`)}</span>
           <span class="sr-future-date">${date.toLocaleDateString()}</span>
           <button class="sr-future-remove" data-remove-index="${i}" title="移除">✕</button>
         </div>
