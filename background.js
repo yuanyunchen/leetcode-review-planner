@@ -111,6 +111,11 @@ class SpacedRepetitionManager {
           sendResponse({ success: true });
           break;
         }
+        case 'updateCustomFields': {
+          const r = await this.updateCustomFields(request.slug, request.fields);
+          sendResponse(r);
+          break;
+        }
         case 'syncToCalendar': {
           const r = await this.syncProblemToCalendar(request.slug);
           sendResponse(r);
@@ -538,6 +543,22 @@ class SpacedRepetitionManager {
     const problemsMap = storageResult.problems || {};
     delete problemsMap[slug];
     await chrome.storage.local.set({ problems: problemsMap });
+  }
+
+  async updateCustomFields(slug, fields) {
+    try {
+      const storageResult = await chrome.storage.local.get('problems');
+      const problemsMap = storageResult.problems || {};
+      const problem = problemsMap[slug];
+      if (!problem) return { success: false, error: '题目不存在' };
+      if (fields.title !== undefined) problem.title = fields.title;
+      if (fields.customBody !== undefined) problem.customBody = fields.customBody;
+      if (fields.customAnswer !== undefined) problem.customAnswer = fields.customAnswer;
+      await chrome.storage.local.set({ problems: problemsMap });
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
   }
 
   // ============ 每日提醒 ============

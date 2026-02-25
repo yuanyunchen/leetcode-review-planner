@@ -145,12 +145,6 @@ textarea:focus-visible {
   min-width: 0;
 }
 
-.leetcode-sr-record-row {
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-}
-
 /* ============ 主按钮 (提交/加入) ============ */
 .leetcode-sr-main-btn {
   display: flex;
@@ -200,39 +194,6 @@ textarea:focus-visible {
   flex-shrink: 0;
 }
 
-/* ============ 查看记录按钮 ============ */
-.leetcode-sr-view-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  height: 30px;
-  width: 50%;
-  padding: 0 8px;
-  background: rgba(255, 255, 255, 0.95);
-  border: none;
-  border-radius: var(--sr-radius-md);
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748b;
-  cursor: pointer;
-  box-shadow: var(--sr-shadow-sm), 0 0 0 1px rgba(15, 23, 42, 0.06);
-  transition: transform var(--sr-base), box-shadow var(--sr-base), background var(--sr-base);
-  font-family: inherit;
-  white-space: nowrap;
-}
-
-.leetcode-sr-view-btn:hover {
-  background: #eff6ff;
-  color: #1d4ed8;
-  box-shadow: var(--sr-shadow-sm), 0 0 0 1px rgba(37, 99, 235, 0.25);
-  transform: translateY(-1px);
-}
-
-.leetcode-sr-view-btn svg {
-  flex-shrink: 0;
-}
-
 /* ============ 主页按钮 ============ */
 .leetcode-sr-home-btn {
   display: flex;
@@ -257,6 +218,98 @@ textarea:focus-visible {
   background: #eff6ff;
   box-shadow: var(--sr-shadow-sm), 0 0 0 1px rgba(37, 99, 235, 0.25);
   transform: translateY(-1px) scale(1.03);
+}
+
+.leetcode-sr-bottom-row {
+  display: flex;
+  gap: 5px;
+  justify-content: flex-end;
+  margin-top: 1px;
+}
+
+.leetcode-sr-bottom-row .leetcode-sr-home-btn {
+  align-self: auto;
+  margin-top: 0;
+}
+
+/* ============ 自定义题目 ============ */
+.sr-custom-badge {
+  font-size: 12px !important;
+}
+
+.sr-custom-section {
+  margin: 10px 0;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--sr-radius-md);
+  overflow: hidden;
+}
+
+.sr-custom-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f8fafc;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  user-select: none;
+  transition: background var(--sr-base);
+}
+
+.sr-custom-section-header:hover {
+  background: #f1f5f9;
+}
+
+.sr-custom-toggle-icon {
+  font-size: 10px;
+  color: #94a3b8;
+  transition: transform var(--sr-base);
+}
+
+.sr-custom-section-content {
+  padding: 10px 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.sr-custom-editable {
+  width: 100%;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #334155;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--sr-radius-sm);
+  padding: 8px 10px;
+  resize: vertical;
+  transition: border-color var(--sr-base);
+  box-sizing: border-box;
+}
+
+.sr-custom-editable:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.sr-custom-save-btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #3b82f6;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--sr-radius-sm);
+  cursor: pointer;
+  transition: background var(--sr-base), color var(--sr-base);
+}
+
+.sr-custom-save-btn:hover {
+  background: #dbeafe;
+  color: #2563eb;
 }
 
 /* ============ 当日复习侧面板 ============ */
@@ -2277,7 +2330,7 @@ textarea:focus-visible {
 
 /* History */
 .sr-history-list {
-  max-height: 180px;
+  max-height: 116px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -2380,9 +2433,9 @@ textarea:focus-visible {
 
 .sr-plan-actions-inline {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   justify-content: flex-start;
-  margin-top: 10px;
+  margin-top: 8px;
   flex-wrap: wrap;
 }
 
@@ -2433,13 +2486,13 @@ textarea:focus-visible {
 /* Action Buttons */
 .sr-btn-add-review,
 .sr-btn-readd {
-  min-height: 34px;
-  padding: 7px 13px;
+  min-height: 28px;
+  padding: 4px 10px;
   border: 1px solid #6366f1;
   background: white;
   color: #6366f1;
-  border-radius: 9px;
-  font-size: 12px;
+  border-radius: 7px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--sr-fast);
@@ -2523,17 +2576,6 @@ textarea:focus-visible {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
   }
 
-  .leetcode-sr-view-btn {
-    background: rgba(31, 41, 55, 0.95);
-    border-color: #4b5563;
-    color: #818cf8;
-  }
-
-  .leetcode-sr-view-btn:hover {
-    background: #312e81;
-    color: white;
-  }
-
   .leetcode-sr-home-btn {
     background: rgba(31, 41, 55, 0.95);
     border-color: #4b5563;
@@ -2584,6 +2626,45 @@ textarea:focus-visible {
     color: #f87171;
     background: #450a0a;
     border-color: #7f1d1d;
+  }
+
+  .sr-custom-section {
+    border-color: #374151;
+  }
+
+  .sr-custom-section-header {
+    background: #1f2937;
+    color: #d1d5db;
+  }
+
+  .sr-custom-section-header:hover {
+    background: #283548;
+  }
+
+  .sr-custom-section-content {
+    border-top-color: #374151;
+  }
+
+  .sr-custom-editable {
+    background: #111827;
+    color: #e5e7eb;
+    border-color: #374151;
+  }
+
+  .sr-custom-editable:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }
+
+  .sr-custom-save-btn {
+    background: #1e3a5f;
+    color: #93c5fd;
+    border-color: #2563eb44;
+  }
+
+  .sr-custom-save-btn:hover {
+    background: #1e40af;
+    color: #bfdbfe;
   }
 
   .sr-home-modal {
@@ -3070,10 +3151,6 @@ textarea:focus-visible {
   box-shadow: 0 14px 30px rgba(109, 70, 223, 0.36);
 }
 
-.leetcode-sr-record-row {
-  justify-content: stretch;
-}
-
 .leetcode-sr-main-btn.added {
   background: linear-gradient(135deg, #2f67c1 0%, #3b82f6 100%);
   box-shadow: 0 9px 22px rgba(59, 130, 246, 0.26);
@@ -3265,13 +3342,13 @@ textarea:focus-visible {
 }
 
 .sr-btn-confirm {
-  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
-  box-shadow: 0 8px 20px rgba(29, 78, 216, 0.28);
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.22);
 }
 
 .sr-btn-confirm:hover {
-  background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
-  box-shadow: 0 12px 24px rgba(29, 78, 216, 0.34);
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.30);
 }
 
 .sr-btn-add-review,
@@ -3333,25 +3410,13 @@ textarea:focus-visible {
   padding: 6px 10px;
   font-size: 12px;
 }
-.leetcode-sr-collapsible .leetcode-sr-view-btn {
-  /* View record button | height -5%, width -10% */
-  min-height: 26px;
-  height: 26px;
-  padding: 0 6px;
-  font-size: 11px;
-}
 .leetcode-sr-collapsible .leetcode-sr-today-btn svg,
 .leetcode-sr-collapsible .leetcode-sr-main-btn svg {
   width: 14px;
   height: 14px;
 }
-.leetcode-sr-collapsible .leetcode-sr-view-btn svg {
-  width: 12px;
-  height: 12px;
-}
-.leetcode-sr-collapsible .leetcode-sr-btn-row,
-.leetcode-sr-collapsible .leetcode-sr-record-row {
-  gap: 5px;              /* spacing between buttons in same row */
+.leetcode-sr-collapsible .leetcode-sr-btn-row {
+  gap: 5px;
 }
 
 .leetcode-sr-home-btn {
@@ -3396,22 +3461,12 @@ textarea:focus-visible {
   line-height: 1;
 }
 
-.leetcode-sr-btn-row,
-.leetcode-sr-record-row {
+.leetcode-sr-btn-row {
   gap: 6px;
 }
 
-.leetcode-sr-record-row {
-  justify-content: flex-end;
-}
-
-.leetcode-sr-record-row:empty {
-  display: none;
-}
-
 .leetcode-sr-today-btn,
-.leetcode-sr-main-btn,
-.leetcode-sr-view-btn {
+.leetcode-sr-main-btn {
   min-height: 34px;
   border-radius: var(--sr-radius-md);
   font-weight: 600;
@@ -3443,23 +3498,6 @@ textarea:focus-visible {
 
 .leetcode-sr-main-btn.added:hover {
   box-shadow: 0 14px 30px rgba(29, 78, 216, 0.34);
-}
-
-.leetcode-sr-view-btn {
-  width: 50%;
-  height: 34px;
-  min-height: 34px;
-  padding: 0 8px;
-  border: none;
-  background: rgba(255, 255, 255, 0.95);
-  color: #64748b;
-  box-shadow: var(--sr-shadow-sm), 0 0 0 1px rgba(15, 23, 42, 0.06);
-}
-
-.leetcode-sr-view-btn:hover {
-  background: #eff6ff;
-  color: #1d4ed8;
-  box-shadow: var(--sr-shadow-sm), 0 0 0 1px rgba(37, 99, 235, 0.25);
 }
 
 /* ============ Unified Visual System v2.3 ============ */

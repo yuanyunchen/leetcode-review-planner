@@ -108,6 +108,12 @@ class LeetCodeHelper {
     });
   }
 
+  _escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
   parseCustomIntervals(rawText) {
     if (!rawText || typeof rawText !== 'string') return [];
     const tokens = rawText
@@ -198,9 +204,9 @@ class LeetCodeHelper {
   updateProblemButtonsVisibility() {
     const onProblem = this.isOnProblemPage();
     const btnRow = document.getElementById('leetcode-sr-btn-row');
-    const recordRow = document.getElementById('leetcode-sr-record-row');
+    const viewBtn = document.getElementById('leetcode-sr-view-btn');
     if (btnRow) btnRow.style.display = onProblem ? '' : 'none';
-    if (recordRow) recordRow.style.display = onProblem ? recordRow.style.display : 'none';
+    if (viewBtn) viewBtn.style.display = onProblem ? '' : 'none';
   }
 
   // ============ 题目信息提取 ============
@@ -258,7 +264,7 @@ class LeetCodeHelper {
         const m = t.match(/^(\d+)\.\s*(.+)$/);
         if (m && m[2].length > 2 && m[2].length < 100) {
           number = m[1]; if (!title) title = m[2];
-          break;
+        break;
         }
       }
     }
@@ -393,11 +399,20 @@ class LeetCodeHelper {
     mainButton.addEventListener('click', () => this.handleMainButtonClick());
     btnRow.appendChild(mainButton);
 
-    // 查看记录按钮行（放在主按钮下方，右侧半宽）
-    const recordRow = document.createElement('div');
-    recordRow.id = 'leetcode-sr-record-row';
-    recordRow.className = 'leetcode-sr-record-row';
-    recordRow.style.display = 'none';
+    // 底部按钮行 (记录 + 添加自定义 + 主页)
+    const bottomRow = document.createElement('div');
+    bottomRow.className = 'leetcode-sr-bottom-row';
+
+    // 添加自定义题目按钮
+    const addCustomBtn = document.createElement('button');
+    addCustomBtn.id = 'leetcode-sr-add-custom-btn';
+    addCustomBtn.className = 'leetcode-sr-home-btn';
+    addCustomBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b0b8c4" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`;
+    addCustomBtn.title = '添加自定义题目';
+    addCustomBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!this.isDragging) this.showCustomProblemModal();
+    });
 
     // 主页按钮 (小)
     const homeBtn = document.createElement('button');
@@ -410,12 +425,14 @@ class LeetCodeHelper {
       if (!this.isDragging) this.showHomeModal();
     });
 
+    bottomRow.appendChild(addCustomBtn);
+    bottomRow.appendChild(homeBtn);
+
     // 组装
     collapsible.appendChild(todayBtn);
     collapsible.appendChild(todayPanel);
     collapsible.appendChild(btnRow);
-    collapsible.appendChild(recordRow);
-    collapsible.appendChild(homeBtn);
+    collapsible.appendChild(bottomRow);
 
     container.appendChild(toggleBtn);
     container.appendChild(collapsible);
@@ -619,8 +636,8 @@ class LeetCodeHelper {
 
       const mainButton = document.getElementById('leetcode-sr-button');
       const btnRow = document.getElementById('leetcode-sr-btn-row');
-      const recordRow = document.getElementById('leetcode-sr-record-row');
-      if (!mainButton || !btnRow || !recordRow) return;
+      const bottomRow = document.querySelector('.leetcode-sr-bottom-row');
+      if (!mainButton || !btnRow) return;
 
       if (response.exists) {
         mainButton.classList.add('added');
@@ -635,25 +652,18 @@ class LeetCodeHelper {
         `;
 
         let viewBtn = document.getElementById('leetcode-sr-view-btn');
-        if (!viewBtn) {
+        if (!viewBtn && bottomRow) {
           viewBtn = document.createElement('button');
           viewBtn.id = 'leetcode-sr-view-btn';
-          viewBtn.className = 'leetcode-sr-view-btn';
-          viewBtn.innerHTML = `
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-width="2"/>
-              <polyline points="14,2 14,8 20,8" stroke-width="2"/>
-              <line x1="16" y1="13" x2="8" y2="13" stroke-width="2"/>
-              <line x1="16" y1="17" x2="8" y2="17" stroke-width="2"/>
-            </svg>
-            <span>记录</span>
-          `;
+          viewBtn.className = 'leetcode-sr-home-btn';
+          viewBtn.innerHTML = '📖';
+          viewBtn.title = this.tr('记录');
           viewBtn.addEventListener('click', () => {
             if (!this.isDragging) this.showProblemDetailModal();
           });
-          recordRow.appendChild(viewBtn);
+          const homeBtn = document.getElementById('leetcode-sr-home-btn');
+          bottomRow.insertBefore(viewBtn, homeBtn);
         }
-        recordRow.style.display = 'flex';
       } else {
         mainButton.classList.remove('added', 'adding');
         mainButton.dataset.mode = 'add';
@@ -665,7 +675,6 @@ class LeetCodeHelper {
         `;
         const viewBtn = document.getElementById('leetcode-sr-view-btn');
         if (viewBtn) viewBtn.remove();
-        recordRow.style.display = 'none';
       }
       this.localize(document.getElementById('leetcode-sr-container'));
     } catch (error) {
@@ -733,9 +742,12 @@ class LeetCodeHelper {
           const dayLabel = daysSinceAdd != null ? this.trText(`第${daysSinceAdd}天`) : '';
           const isLast = p.currentInterval === (p.reviewDates || []).length - 1;
           const lastBadge = isLast ? `<span class="sr-today-last">${this.tr('最后一次')}</span>` : '';
+          const isCustom = !!p.isCustom;
+          const numSpan = isCustom ? '<span class="sr-today-num">📝</span>' : `<span class="sr-today-num">#${p.number}</span>`;
+          const itemAttrs = isCustom ? `data-slug="${p.slug}"` : `data-url="${p.url}"`;
           return `
-            <div class="sr-today-item" data-url="${p.url}">
-              <span class="sr-today-num">#${p.number}</span>
+            <div class="sr-today-item" ${itemAttrs}>
+              ${numSpan}
               <span class="sr-today-title">${p.title}</span>
               ${lastBadge}
               <span class="sr-today-day">${dayLabel}</span>
@@ -756,7 +768,11 @@ class LeetCodeHelper {
 
       panel.querySelectorAll('.sr-today-item').forEach(item => {
         item.addEventListener('click', () => {
-          if (item.dataset.url) window.location.href = item.dataset.url;
+          if (item.dataset.slug) {
+            this.showProblemDetailModal(item.dataset.slug);
+          } else if (item.dataset.url) {
+            window.location.href = item.dataset.url;
+          }
         });
       });
       this.localize(panel);
@@ -1454,16 +1470,22 @@ class LeetCodeHelper {
       `;
     }
 
+    const isCustom = !!problem.isCustom;
+    const numBadge = isCustom ? '<span class="sr-hm-card-num sr-custom-badge">📝</span>' : `<span class="sr-hm-card-num">#${problem.number}</span>`;
+    const diffSpan = isCustom ? '' : `<span class="sr-hm-card-diff ${problem.difficulty.toLowerCase()}">${problem.difficulty}</span>`;
+    const titleAction = isCustom ? `data-action="view" data-slug="${problem.slug}"` : `data-action="open-title" data-url="${problem.url}"`;
+    const titleTip = isCustom ? this.tr('查看详情') : this.tr('打开题目');
+
     return `
       <div class="sr-hm-card ${isMastered ? 'mastered' : ''} ${context === 'done' ? 'done-card' : ''} ${context === 'added' ? 'added-card' : ''} ${context === 'today' ? 'due-card' : ''} ${isOverdue ? 'overdue' : ''}">
         <div class="sr-hm-card-header">
-          <div class="sr-hm-card-title sr-hm-card-title-link" data-action="open-title" data-url="${problem.url}" title="打开题目">
-            <span class="sr-hm-card-num">#${problem.number}</span>
+          <div class="sr-hm-card-title sr-hm-card-title-link" ${titleAction} title="${titleTip}">
+            ${numBadge}
             ${problem.title}
             ${isMastered ? '<span class="sr-hm-badge gold">⭐</span>' : ''}
             ${isOverdue ? '<span class="sr-hm-badge red">逾期</span>' : ''}
           </div>
-          <span class="sr-hm-card-diff ${problem.difficulty.toLowerCase()}">${problem.difficulty}</span>
+          ${diffSpan}
         </div>
         ${tagsHtml}
         <div class="sr-hm-card-meta">
@@ -1844,6 +1866,227 @@ class LeetCodeHelper {
     this.localize(container);
   }
 
+  // ============ 自定义题目弹窗 ============
+  showCustomProblemModal() {
+    this.removeModal();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'leetcode-sr-modal-overlay';
+    overlay.className = 'leetcode-sr-overlay';
+
+    const modal = document.createElement('div');
+    modal.className = 'leetcode-sr-modal';
+    modal.style.zoom = this.scale;
+    modal.innerHTML = `
+      <div class="leetcode-sr-modal-header">
+        <h3>📝 ${this.tr('添加自定义题目')}</h3>
+        <button class="leetcode-sr-modal-close" id="sr-modal-close">&times;</button>
+      </div>
+      <div class="leetcode-sr-modal-body">
+        <div class="sr-section-title">${this.tr('题目标题')} <span style="color:#ef4444;font-weight:700">*</span></div>
+        <input type="text" id="sr-custom-title" placeholder="${this.tr('输入题目标题')}" class="sr-text-input" style="margin-bottom:10px;">
+        <div class="sr-section-title">${this.tr('题干')} <span style="font-weight:400;color:#9ca3af;font-size:12px">${this.tr('（选填）')}</span></div>
+        <textarea id="sr-custom-body" placeholder="${this.tr('输入题目描述...')}" class="sr-text-input sr-textarea" rows="4" style="margin-bottom:10px;"></textarea>
+        <div class="sr-section-title">${this.tr('答案')} <span style="font-weight:400;color:#9ca3af;font-size:12px">${this.tr('（选填）')}</span></div>
+        <textarea id="sr-custom-answer" placeholder="${this.tr('输入答案...')}" class="sr-text-input sr-textarea" rows="3"></textarea>
+      </div>
+      <div class="leetcode-sr-modal-footer">
+        <button class="sr-btn-cancel" id="sr-modal-cancel">${this.tr('取消')}</button>
+        <button class="sr-btn-confirm" id="sr-modal-confirm">${this.tr('下一步')}</button>
+      </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    this.modalOverlay = overlay;
+    this.localize(overlay);
+
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
+    modal.querySelector('#sr-modal-close').addEventListener('click', () => this.removeModal());
+    modal.querySelector('#sr-modal-cancel').addEventListener('click', () => this.removeModal());
+    modal.querySelector('#sr-modal-confirm').addEventListener('click', () => this.showCustomProblemPlanModal());
+  }
+
+  showCustomProblemPlanModal() {
+    const title = document.getElementById('sr-custom-title')?.value.trim();
+    if (!title) {
+      this.showNotification(this.tr('请输入题目标题'), 'info');
+      return;
+    }
+    const body = document.getElementById('sr-custom-body')?.value.trim() || '';
+    const answer = document.getElementById('sr-custom-answer')?.value.trim() || '';
+
+    this._pendingCustomProblem = { title, body, answer };
+
+    this.removeModal();
+    const defaultIsHalf = this.defaultPlan === 'half';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'leetcode-sr-modal-overlay';
+    overlay.className = 'leetcode-sr-overlay';
+
+    const modal = document.createElement('div');
+    modal.className = 'leetcode-sr-modal';
+    modal.style.zoom = this.scale;
+    modal.innerHTML = `
+      <div class="leetcode-sr-modal-header">
+        <h3>📚 ${this.tr('选择复习计划')}</h3>
+        <button class="leetcode-sr-modal-close" id="sr-modal-close">&times;</button>
+      </div>
+      <div class="leetcode-sr-modal-body">
+        <div class="leetcode-sr-modal-info">
+          <span class="sr-custom-badge">📝</span>
+          <span class="sr-problem-name">${this._escapeHtml(title)}</span>
+        </div>
+        <div class="leetcode-sr-plan-options">
+          <label class="leetcode-sr-plan-option ${defaultIsHalf ? '' : 'selected'}" data-plan="full">
+            <input type="radio" name="sr-plan" value="full" ${defaultIsHalf ? '' : 'checked'}>
+            <div class="sr-plan-content"><div class="sr-plan-title">🔥 完整复习 (6次)</div></div>
+          </label>
+          <label class="leetcode-sr-plan-option ${defaultIsHalf ? 'selected' : ''}" data-plan="half">
+            <input type="radio" name="sr-plan" value="half" ${defaultIsHalf ? 'checked' : ''}>
+            <div class="sr-plan-content"><div class="sr-plan-title">⚡ 精简复习 (3次)</div></div>
+          </label>
+          <label class="leetcode-sr-plan-option" data-plan="custom">
+            <input type="radio" name="sr-plan" value="custom">
+            <div class="sr-plan-content"><div class="sr-plan-title">🧪 自定义间隔</div></div>
+          </label>
+        </div>
+        <div class="sr-plan-custom-wrap hidden" id="sr-add-custom-wrap">
+          <input type="text" id="sr-custom-intervals" placeholder="自定义间隔（如: 0,3,10,30 或 0 3 10 30）" class="sr-text-input">
+          <div class="sr-plan-custom-hint">支持空格、逗号、分号</div>
+        </div>
+      </div>
+      <div class="leetcode-sr-modal-footer">
+        <button class="sr-btn-cancel" id="sr-modal-back">${this.tr('上一步')}</button>
+        <button class="sr-btn-confirm" id="sr-modal-confirm">${this.tr('添加题目')}</button>
+      </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    this.modalOverlay = overlay;
+    this.localize(overlay);
+
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
+    modal.querySelector('#sr-modal-close').addEventListener('click', () => this.removeModal());
+    modal.querySelector('#sr-modal-back').addEventListener('click', () => this.goBackToCustomInput());
+    modal.querySelector('#sr-modal-confirm').addEventListener('click', () => this.confirmAddCustomProblem());
+
+    modal.querySelectorAll('.leetcode-sr-plan-option').forEach(option => {
+      option.addEventListener('click', () => {
+        modal.querySelectorAll('.leetcode-sr-plan-option').forEach(o => o.classList.remove('selected'));
+        option.classList.add('selected');
+        const input = option.querySelector('input');
+        input.checked = true;
+        const customWrap = modal.querySelector('#sr-add-custom-wrap');
+        if (customWrap) customWrap.classList.toggle('hidden', input.value !== 'custom');
+      });
+    });
+  }
+
+  goBackToCustomInput() {
+    const pending = this._pendingCustomProblem;
+    this.removeModal();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'leetcode-sr-modal-overlay';
+    overlay.className = 'leetcode-sr-overlay';
+
+    const modal = document.createElement('div');
+    modal.className = 'leetcode-sr-modal';
+    modal.style.zoom = this.scale;
+    modal.innerHTML = `
+      <div class="leetcode-sr-modal-header">
+        <h3>📝 ${this.tr('添加自定义题目')}</h3>
+        <button class="leetcode-sr-modal-close" id="sr-modal-close">&times;</button>
+      </div>
+      <div class="leetcode-sr-modal-body">
+        <div class="sr-section-title">${this.tr('题目标题')} <span style="color:#ef4444;font-weight:700">*</span></div>
+        <input type="text" id="sr-custom-title" placeholder="${this.tr('输入题目标题')}" class="sr-text-input" style="margin-bottom:10px;" value="${this._escapeHtml(pending?.title || '')}">
+        <div class="sr-section-title">${this.tr('题干')} <span style="font-weight:400;color:#9ca3af;font-size:12px">${this.tr('（选填）')}</span></div>
+        <textarea id="sr-custom-body" placeholder="${this.tr('输入题目描述...')}" class="sr-text-input sr-textarea" rows="4" style="margin-bottom:10px;">${this._escapeHtml(pending?.body || '')}</textarea>
+        <div class="sr-section-title">${this.tr('答案')} <span style="font-weight:400;color:#9ca3af;font-size:12px">${this.tr('（选填）')}</span></div>
+        <textarea id="sr-custom-answer" placeholder="${this.tr('输入答案...')}" class="sr-text-input sr-textarea" rows="3">${this._escapeHtml(pending?.answer || '')}</textarea>
+      </div>
+      <div class="leetcode-sr-modal-footer">
+        <button class="sr-btn-cancel" id="sr-modal-cancel">${this.tr('取消')}</button>
+        <button class="sr-btn-confirm" id="sr-modal-confirm">${this.tr('下一步')}</button>
+      </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    this.modalOverlay = overlay;
+    this.localize(overlay);
+
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
+    modal.querySelector('#sr-modal-close').addEventListener('click', () => this.removeModal());
+    modal.querySelector('#sr-modal-cancel').addEventListener('click', () => this.removeModal());
+    modal.querySelector('#sr-modal-confirm').addEventListener('click', () => this.showCustomProblemPlanModal());
+  }
+
+  async confirmAddCustomProblem() {
+    const pending = this._pendingCustomProblem;
+    if (!pending || !pending.title) {
+      this.showNotification(this.tr('请输入题目标题'), 'info');
+      return;
+    }
+    const { title, body, answer } = pending;
+
+    const selectedPlanInput = document.querySelector('input[name="sr-plan"]:checked');
+    if (!selectedPlanInput) return;
+    const selectedPlan = selectedPlanInput.value;
+    let customIntervals = null;
+    if (selectedPlan === 'custom') {
+      const raw = document.getElementById('sr-custom-intervals')?.value || '';
+      customIntervals = this.parseCustomIntervals(raw);
+      if (customIntervals.length === 0) {
+        this.showNotification('请输入有效天数', 'info');
+        return;
+      }
+    }
+
+    this.removeModal();
+
+    try {
+      const slug = 'custom-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+      const problemInfo = {
+        number: '',
+        title: title,
+        slug: slug,
+        difficulty: '',
+        tags: [],
+        url: '',
+        site: window.location.hostname.includes('leetcode.cn') ? 'leetcode.cn' : 'leetcode.com',
+        timestamp: Date.now(),
+        isCustom: true,
+        customBody: body,
+        customAnswer: answer
+      };
+
+      const response = await this.safeSendMessage({
+        action: 'addProblem',
+        problem: problemInfo,
+        planType: selectedPlan,
+        customIntervals,
+        time: null,
+        comment: null
+      });
+
+      if (response && response.success) {
+        this._pendingCustomProblem = null;
+        this.showNotification(this.tr('✅ 自定义题目已添加！'), 'success');
+        this.checkTodayStatus();
+        this.refreshHomeIfOpen();
+      } else {
+        throw new Error(response?.error || '添加失败');
+      }
+    } catch (error) {
+      this.showNotification('❌ ' + error.message, 'error');
+    }
+  }
+
   // ============ 加入复习弹窗 ============
   showPlanSelectionModal() {
     this.removeModal();
@@ -2135,29 +2378,66 @@ class LeetCodeHelper {
     const modal = document.createElement('div');
     modal.className = 'leetcode-sr-modal leetcode-sr-modal-detail';
     modal.style.zoom = this.scale;
+    const isCustom = !!problem.isCustom;
+    const infoBadge = isCustom
+      ? `<span class="sr-problem-badge sr-custom-badge">📝</span>`
+      : `<span class="sr-problem-badge">#${problem.number}</span>`;
+    const diffBadge = isCustom
+      ? ''
+      : `<span class="sr-difficulty-badge ${problem.difficulty.toLowerCase()}">${problem.difficulty}</span>`;
+
+    let customSectionsHtml = '';
+    if (isCustom) {
+      const bodyText = problem.customBody || '';
+      const answerText = problem.customAnswer || '';
+      customSectionsHtml = `
+        <div class="sr-custom-section">
+          <div class="sr-custom-section-header" data-toggle="sr-custom-body-content">
+            <span>${this.tr('题干')}</span>
+            <span class="sr-custom-toggle-icon">▶</span>
+          </div>
+          <div class="sr-custom-section-content" id="sr-custom-body-content" style="display:none;">
+            <textarea class="sr-custom-editable sr-textarea" id="sr-custom-body-edit" rows="4" placeholder="${this.tr('暂无题干')}">${this._escapeHtml(bodyText)}</textarea>
+            <button class="sr-custom-save-btn" id="sr-save-body">${this.tr('保存')}</button>
+          </div>
+        </div>
+        <div class="sr-custom-section">
+          <div class="sr-custom-section-header" data-toggle="sr-custom-answer-content">
+            <span>${this.tr('答案')}</span>
+            <span class="sr-custom-toggle-icon">▶</span>
+          </div>
+          <div class="sr-custom-section-content" id="sr-custom-answer-content" style="display:none;">
+            <textarea class="sr-custom-editable sr-textarea" id="sr-custom-answer-edit" rows="4" placeholder="${this.tr('暂无答案')}">${this._escapeHtml(answerText)}</textarea>
+            <button class="sr-custom-save-btn" id="sr-save-answer">${this.tr('保存')}</button>
+          </div>
+        </div>
+      `;
+    }
+
     modal.innerHTML = `
       <div class="leetcode-sr-modal-header">
-        <h3>📋 题目记录</h3>
+        <h3>📋 ${this.tr('题目记录')}</h3>
         <button class="leetcode-sr-modal-close" id="sr-modal-close">&times;</button>
       </div>
       <div class="leetcode-sr-modal-body">
         <div class="leetcode-sr-modal-info">
-          <span class="sr-problem-badge">#${problem.number}</span>
+          ${infoBadge}
           <span class="sr-problem-name">${problem.title}</span>
-          <span class="sr-difficulty-badge ${problem.difficulty.toLowerCase()}">${problem.difficulty}</span>
+          ${diffBadge}
         </div>
         <div class="sr-detail-stats">
           <div class="sr-detail-stat"><span class="sr-stat-label">${this.tr('加入时间')}</span><span class="sr-stat-value">${addedDate}</span></div>
           <div class="sr-detail-stat"><span class="sr-stat-label">${this.tr('复习进度')}</span><span class="sr-stat-value">${doneInCurrentPlan} / ${problem.reviewDates.length}</span></div>
           <div class="sr-detail-stat"><span class="sr-stat-label">${this.tr('状态')}</span><span class="sr-stat-value">${isMastered ? this.tr('⭐ 已掌握') : isCompleted ? this.tr('✅ 全部完成') : this.tr('📖 复习中')}</span></div>
         </div>
+        ${customSectionsHtml}
         <div class="sr-section-title">${this.tr('历史记录')}</div>
         <div class="sr-history-list">${historyHtml}</div>
         <div class="sr-section-title" style="margin-top:12px">${this.tr('复习计划')}</div>
         <div class="sr-future-list">${futurePlanHtml}</div>
         <div class="sr-plan-actions-inline">
-          <button class="sr-btn-add-review" id="sr-add-extra">+ 添加复习</button>
-          <button class="sr-btn-readd" id="sr-readd">重新加入</button>
+          <button class="sr-btn-add-review" id="sr-add-extra">${this.tr('+ 添加复习')}</button>
+          <button class="sr-btn-readd" id="sr-readd">${this.tr('重新加入')}</button>
         </div>
       </div>
       <div class="leetcode-sr-modal-footer sr-footer-multi">
@@ -2219,6 +2499,41 @@ class LeetCodeHelper {
         this.refreshHomeIfOpen();
       }
     });
+
+    if (isCustom) {
+      modal.querySelectorAll('.sr-custom-section-header').forEach(header => {
+        header.addEventListener('click', () => {
+          const targetId = header.dataset.toggle;
+          const content = document.getElementById(targetId);
+          const icon = header.querySelector('.sr-custom-toggle-icon');
+          if (content) {
+            const open = content.style.display !== 'none';
+            content.style.display = open ? 'none' : '';
+            if (icon) icon.textContent = open ? '▶' : '▼';
+          }
+        });
+      });
+
+      const saveBodyBtn = modal.querySelector('#sr-save-body');
+      if (saveBodyBtn) {
+        saveBodyBtn.addEventListener('click', async () => {
+          const val = document.getElementById('sr-custom-body-edit')?.value || '';
+          const r = await this.safeSendMessage({ action: 'updateCustomFields', slug: problem.slug, fields: { customBody: val } });
+          if (r?.success) this.showNotification('✅ 题干已保存', 'success');
+          else this.showNotification('保存失败', 'error');
+        });
+      }
+
+      const saveAnswerBtn = modal.querySelector('#sr-save-answer');
+      if (saveAnswerBtn) {
+        saveAnswerBtn.addEventListener('click', async () => {
+          const val = document.getElementById('sr-custom-answer-edit')?.value || '';
+          const r = await this.safeSendMessage({ action: 'updateCustomFields', slug: problem.slug, fields: { customAnswer: val } });
+          if (r?.success) this.showNotification('✅ 答案已保存', 'success');
+          else this.showNotification('保存失败', 'error');
+        });
+      }
+    }
   }
 
   // ============ 添加复习天数弹窗 ============
