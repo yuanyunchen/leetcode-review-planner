@@ -197,9 +197,13 @@ class LeetCodeHelper {
     let title = '', difficulty = '', number = '';
 
     const titleSelectors = [
-      'div[data-cy="question-title"]', '.css-v3d350',
-      'span.mr-2.text-label-1', '[class*="text-title-large"]',
-      'a[href*="/problems/"] span'
+      'div[data-cy="question-title"]',
+      'span.mr-2.text-label-1',
+      '[class*="text-title-large"]',
+      'a[data-difficulty]',
+      'div[class*="title"] a[href*="/problems/"]',
+      'a[href*="/problems/"] span',
+      '.css-v3d350'
     ];
 
     for (const sel of titleSelectors) {
@@ -207,14 +211,36 @@ class LeetCodeHelper {
       if (el) {
         const fullTitle = el.textContent.trim();
         const match = fullTitle.match(/^(\d+)\.\s*(.+)$/);
-        if (match) { number = match[1]; title = match[2]; }
-        else { title = fullTitle; }
-        break;
+        if (match) { number = match[1]; title = match[2]; break; }
+        else if (fullTitle.length > 1 && fullTitle.length < 200) { title = fullTitle; }
+      }
+    }
+
+    if (!number || !title) {
+      const pageTitle = document.title || '';
+      const ptMatch = pageTitle.match(/^(\d+)\.\s*(.+?)(?:\s*[-–|]|\s*-\s*LeetCode)/);
+      if (ptMatch) {
+        if (!number) number = ptMatch[1];
+        if (!title) title = ptMatch[2].trim();
+      }
+    }
+
+    if (!number) {
+      const allEls = document.querySelectorAll('a[href*="/problems/"], span, div');
+      for (const el of allEls) {
+        const t = el.textContent.trim();
+        const m = t.match(/^(\d+)\.\s*(.+)$/);
+        if (m && m[2].length > 2 && m[2].length < 100) {
+          number = m[1]; if (!title) title = m[2];
+          break;
+        }
       }
     }
 
     const diffSelectors = [
-      'div[diff]', '.css-10o4wqw', '[class*="text-difficulty"]', 'div.mt-3 > div'
+      'div[diff]', '[class*="text-difficulty"]',
+      'div[class*="difficulty"]', 'span[class*="difficulty"]',
+      '.css-10o4wqw', 'div.mt-3 > div'
     ];
 
     for (const sel of diffSelectors) {
@@ -226,6 +252,12 @@ class LeetCodeHelper {
         else if (text.includes('hard') || text.includes('困难')) difficulty = 'Hard';
         if (difficulty) break;
       }
+    }
+
+    if (!difficulty) {
+      const body = document.body.innerHTML;
+      const diffMatch = body.match(/"difficulty"\s*:\s*"(Easy|Medium|Hard)"/i);
+      if (diffMatch) difficulty = diffMatch[1].charAt(0).toUpperCase() + diffMatch[1].slice(1).toLowerCase();
     }
 
     const tags = this.extractTags();
@@ -1368,8 +1400,8 @@ class LeetCodeHelper {
     const isOverdue = nextDate && nextDate < now && !isCompleted && !isMastered;
 
     let statusText = '';
-    if (isMastered) statusText = '⭐ 已掌握';
-    else if (isCompleted) statusText = '✅ 已完成';
+    if (isMastered) statusText = this.tr('⭐ 已掌握');
+    else if (isCompleted) statusText = this.tr('✅ 已完成');
     else if (nextDate) statusText = `📅 ${nextDate.toLocaleDateString()}`;
 
     const tagsHtml = tags.length > 0
@@ -2086,13 +2118,13 @@ class LeetCodeHelper {
           <span class="sr-difficulty-badge ${problem.difficulty.toLowerCase()}">${problem.difficulty}</span>
         </div>
         <div class="sr-detail-stats">
-          <div class="sr-detail-stat"><span class="sr-stat-label">加入时间</span><span class="sr-stat-value">${addedDate}</span></div>
-          <div class="sr-detail-stat"><span class="sr-stat-label">复习进度</span><span class="sr-stat-value">${doneInCurrentPlan} / ${problem.reviewDates.length}</span></div>
-          <div class="sr-detail-stat"><span class="sr-stat-label">状态</span><span class="sr-stat-value">${isMastered ? '⭐ 已掌握' : isCompleted ? '✅ 全部完成' : '📖 复习中'}</span></div>
+          <div class="sr-detail-stat"><span class="sr-stat-label">${this.tr('加入时间')}</span><span class="sr-stat-value">${addedDate}</span></div>
+          <div class="sr-detail-stat"><span class="sr-stat-label">${this.tr('复习进度')}</span><span class="sr-stat-value">${doneInCurrentPlan} / ${problem.reviewDates.length}</span></div>
+          <div class="sr-detail-stat"><span class="sr-stat-label">${this.tr('状态')}</span><span class="sr-stat-value">${isMastered ? this.tr('⭐ 已掌握') : isCompleted ? this.tr('✅ 全部完成') : this.tr('📖 复习中')}</span></div>
         </div>
-        <div class="sr-section-title">历史记录</div>
+        <div class="sr-section-title">${this.tr('历史记录')}</div>
         <div class="sr-history-list">${historyHtml}</div>
-        <div class="sr-section-title" style="margin-top:12px">复习计划</div>
+        <div class="sr-section-title" style="margin-top:12px">${this.tr('复习计划')}</div>
         <div class="sr-future-list">${futurePlanHtml}</div>
         <div class="sr-plan-actions-inline">
           <button class="sr-btn-add-review" id="sr-add-extra">+ 添加复习</button>
