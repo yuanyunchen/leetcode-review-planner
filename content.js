@@ -1935,8 +1935,8 @@ class LeetCodeHelper {
       </div>
       <div class="leetcode-sr-modal-body">
         <div class="leetcode-sr-modal-info">
-          <span class="sr-custom-badge">📝</span>
-          <span class="sr-problem-name">${this._escapeHtml(title)}</span>
+          <span class="sr-custom-badge" style="font-size:15px">📝</span>
+          <span class="sr-problem-name" style="font-size:16px;font-weight:700;color:#1e40af">${this._escapeHtml(title)}</span>
         </div>
         <div class="leetcode-sr-plan-options">
           <label class="leetcode-sr-plan-option ${defaultIsHalf ? '' : 'selected'}" data-plan="full">
@@ -1955,6 +1955,11 @@ class LeetCodeHelper {
         <div class="sr-plan-custom-wrap hidden" id="sr-add-custom-wrap">
           <input type="text" id="sr-custom-intervals" placeholder="自定义间隔（如: 0,3,10,30 或 0 3 10 30）" class="sr-text-input">
           <div class="sr-plan-custom-hint">支持空格、逗号、分号</div>
+        </div>
+        <div class="sr-section-title" style="margin-top:16px">${this.tr('添加笔记')} <span style="font-weight:400;color:#9ca3af;font-size:12px">${this.tr('（可选）')}</span></div>
+        <div class="sr-note-form-compact">
+          <input type="text" id="sr-add-time" placeholder="${this.tr('用时（如: 25min）')}" class="sr-text-input">
+          <textarea id="sr-add-comment" placeholder="${this.tr('笔记（可选）')}" class="sr-text-input sr-textarea" rows="2"></textarea>
         </div>
       </div>
       <div class="leetcode-sr-modal-footer">
@@ -2047,6 +2052,8 @@ class LeetCodeHelper {
       }
     }
 
+    const time = document.getElementById('sr-add-time')?.value.trim() || '';
+    const comment = document.getElementById('sr-add-comment')?.value.trim() || '';
     this.removeModal();
 
     try {
@@ -2070,8 +2077,8 @@ class LeetCodeHelper {
         problem: problemInfo,
         planType: selectedPlan,
         customIntervals,
-        time: null,
-        comment: null
+        time: time || null,
+        comment: comment || null
       });
 
       if (response && response.success) {
