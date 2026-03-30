@@ -428,6 +428,21 @@ textarea:focus-visible {
   text-transform: uppercase;
 }
 
+.sr-today-overdue {
+  font-size: 9px;
+  font-weight: 700;
+  color: #ea580c;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.sr-today-overdue-item {
+  background: #fffbf5;
+}
+
 .sr-today-empty {
   text-align: center;
   padding: 24px 16px;
@@ -2223,8 +2238,24 @@ textarea:focus-visible {
   align-items: center;
 }
 
-.sr-footer-multi .sr-btn-master {
+.sr-btn-submit-review {
+  min-height: 34px;
+  padding: 7px 13px;
+  border: none;
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  color: white;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--sr-fast);
+  font-family: inherit;
   margin-left: auto;
+}
+
+.sr-btn-submit-review:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
 .sr-btn-home {
@@ -2391,6 +2422,13 @@ textarea:focus-visible {
 .sr-history-comment {
   font-size: 12px;
   color: #4b5563;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.sr-history-late {
+  font-size: 11px;
+  color: #ea580c;
   margin-top: 2px;
   line-height: 1.4;
 }
@@ -2626,6 +2664,16 @@ textarea:focus-visible {
     color: #f87171;
     background: #450a0a;
     border-color: #7f1d1d;
+  }
+
+  .sr-today-overdue {
+    color: #fb923c;
+    background: #431407;
+    border-color: #7c2d12;
+  }
+
+  .sr-today-overdue-item {
+    background: #1c1412;
   }
 
   .sr-custom-section {
@@ -3041,6 +3089,10 @@ textarea:focus-visible {
 
   .sr-history-comment {
     color: #d1d5db;
+  }
+
+  .sr-history-late {
+    color: #fb923c;
   }
 
   .sr-history-line {

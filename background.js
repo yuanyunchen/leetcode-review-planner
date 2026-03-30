@@ -347,6 +347,8 @@ class SpacedRepetitionManager {
         dayLabel: canConsumePlannedReview ? intervalDay : daysSinceAdd,
         reviewNumber: canConsumePlannedReview ? (problem.currentInterval + 1) : 0,
         early: !canConsumePlannedReview,
+        dueDate: currentReviewDate || null,
+        submittedAt: now,
         time: time || null,
         comment: comment || null
       };

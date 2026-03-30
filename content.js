@@ -133,14 +133,6 @@ class LeetCodeHelper {
     return d.getTime();
   }
 
-  getOverdueDays(nextReviewTs, nowTs = Date.now()) {
-    if (!nextReviewTs) return 0;
-    const due = this.getStartOfDayTs(nextReviewTs);
-    const today = this.getStartOfDayTs(nowTs);
-    if (due >= today) return 0;
-    return Math.floor((today - due) / 86400000);
-  }
-
   applyScale() {
     const zoom = this.scale;
     const container = document.getElementById('leetcode-sr-container');
@@ -737,19 +729,27 @@ class LeetCodeHelper {
       } else {
         const todayStart = this.getStartOfDayTs();
         const itemsHtml = reviews.map(p => {
+          const dueTs = p.reviewDates[p.currentInterval];
+          const dueStart = dueTs ? this.getStartOfDayTs(dueTs) : todayStart;
+          const isOverdue = dueStart < todayStart;
+          const overdueDays = isOverdue ? Math.round((todayStart - dueStart) / 86400000) : 0;
+
           const baseTs = p.planBaseAt || p.addedAt || 0;
-          const daysSinceAdd = baseTs ? Math.round((todayStart - this.getStartOfDayTs(baseTs)) / 86400000) : null;
-          const dayLabel = daysSinceAdd != null ? this.trText(`第${daysSinceAdd}天`) : '';
+          const planBase = baseTs ? this.getStartOfDayTs(baseTs) : 0;
+          const scheduledDay = dueTs ? Math.max(0, Math.round((dueStart - planBase) / 86400000)) : null;
+          const dayLabel = scheduledDay != null ? this.trText(`第${scheduledDay}天`) : '';
           const isLast = p.currentInterval === (p.reviewDates || []).length - 1;
           const lastBadge = isLast ? `<span class="sr-today-last">${this.tr('最后一次')}</span>` : '';
+          const overdueBadge = isOverdue ? `<span class="sr-today-overdue">${this.trText(`逾期 ${overdueDays} 天`)}</span>` : '';
           const isCustom = !!p.isCustom;
           const numSpan = isCustom ? '<span class="sr-today-num">📝</span>' : `<span class="sr-today-num">#${p.number}</span>`;
           const itemAttrs = isCustom ? `data-slug="${p.slug}"` : `data-url="${p.url}"`;
           return `
-            <div class="sr-today-item" ${itemAttrs}>
+            <div class="sr-today-item ${isOverdue ? 'sr-today-overdue-item' : ''}" ${itemAttrs}>
               ${numSpan}
               <span class="sr-today-title">${p.title}</span>
               ${lastBadge}
+              ${overdueBadge}
               <span class="sr-today-day">${dayLabel}</span>
             </div>
           `;
@@ -1127,7 +1127,6 @@ class LeetCodeHelper {
         .filter(p => (p.completedReviews || []).some(ts => ts >= dayStart && ts < dayEnd));
 
       let reviews = [];
-      let overdueTasks = [];
       if (isToday) {
         const [reviewResp, completedResp] = await Promise.all([
           this.safeSendMessage({ action: 'getTodayReviews' }),
@@ -1139,21 +1138,11 @@ class LeetCodeHelper {
           completedThisDay.length = 0;
           completedThisDay.push(...todayCompletedFromMsg);
         }
-        overdueTasks = allProblems
-          .map((p) => {
-            const isCompleted = p.currentInterval >= p.reviewDates.length;
-            if (p.mastered || isCompleted) return null;
-            const nextReview = p.reviewDates[p.currentInterval];
-            if (!nextReview || nextReview >= dayStart) return null;
-            return { ...p, overdueDays: this.getOverdueDays(nextReview) };
-          })
-          .filter(Boolean)
-          .sort((a, b) => (b.overdueDays - a.overdueDays) || (a.number - b.number));
       }
 
       const dateNavHtml = this._buildDateNav();
 
-      if (reviews.length === 0 && addedThisDay.length === 0 && completedThisDay.length === 0 && overdueTasks.length === 0) {
+      if (reviews.length === 0 && addedThisDay.length === 0 && completedThisDay.length === 0) {
         content.innerHTML = `
           ${dateNavHtml}
           <div class="sr-hm-empty">
@@ -1179,26 +1168,6 @@ class LeetCodeHelper {
       if (completedThisDay.length > 0) {
         html += `<div class="sr-hm-section-label done-label">${this.trText(`✅ 已完成 (${completedThisDay.length})`)}</div>`;
         html += completedThisDay.map(p => this.createHomeCard(p, 'done')).join('');
-      }
-      if (overdueTasks.length > 0) {
-        html += `<div class="sr-hm-section-label overdue-label">${this.trText(`⏰ 未完成 (${overdueTasks.length})`)}</div>`;
-        html += `
-          <div class="sr-hm-overdue-list">
-            ${overdueTasks.map(p => `
-              <div class="sr-hm-overdue-item">
-                <span class="sr-hm-overdue-main">
-                  <span class="sr-hm-overdue-num">#${p.number}</span>
-                  <span class="sr-hm-overdue-title">${p.title}</span>
-                </span>
-                <span class="sr-hm-overdue-days">${this.trText(`逾期 ${p.overdueDays} 天`)}</span>
-                <div class="sr-hm-overdue-actions">
-                  <button class="sr-hm-btn" data-action="open-overdue" data-url="${p.url}" title="打开题目">${this.tr('打开')}</button>
-                  <button class="sr-hm-btn danger" data-action="ignore-overdue" data-slug="${p.slug}" data-index="${p.currentInterval}">${this.tr('忽略')}</button>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        `;
       }
       content.innerHTML = html;
       this._bindDateNavEvents(allProblems);
@@ -1443,6 +1412,7 @@ class LeetCodeHelper {
     const tags = (problem.tags || []).slice(0, 3);
     const now = new Date(); now.setHours(0, 0, 0, 0);
     const isOverdue = nextDate && nextDate < now && !isCompleted && !isMastered;
+    const overdueDays = isOverdue && nextDate ? Math.round((now.getTime() - nextDate.getTime()) / 86400000) : 0;
 
     let statusText = '';
     if (isMastered) statusText = this.tr('⭐ 已掌握');
@@ -1453,22 +1423,10 @@ class LeetCodeHelper {
       ? `<div class="sr-hm-card-tags">${tags.map(t => `<span class="sr-hm-card-tag" data-tag="${t}">${t}</span>`).join('')}</div>`
       : '';
 
-    let actionsHtml = '';
-    if (context === 'today') {
-      actionsHtml = `
-        <button class="sr-hm-btn" data-action="view" data-slug="${problem.slug}">📋 记录</button>
-      `;
-    } else if (context === 'done' || context === 'added') {
-      actionsHtml = `
-        <button class="sr-hm-btn" data-action="view" data-slug="${problem.slug}">记录</button>
-        <button class="sr-hm-btn danger" data-action="delete" data-slug="${problem.slug}">删除</button>
-      `;
-    } else {
-      actionsHtml = `
-        <button class="sr-hm-btn" data-action="view" data-slug="${problem.slug}">记录</button>
-        <button class="sr-hm-btn danger" data-action="delete" data-slug="${problem.slug}">删除</button>
-      `;
-    }
+    const actionsHtml = `
+      <button class="sr-hm-btn" data-action="view" data-slug="${problem.slug}">记录</button>
+      <button class="sr-hm-btn danger" data-action="delete" data-slug="${problem.slug}">删除</button>
+    `;
 
     const isCustom = !!problem.isCustom;
     const numBadge = isCustom ? '<span class="sr-hm-card-num sr-custom-badge">📝</span>' : `<span class="sr-hm-card-num">#${problem.number}</span>`;
@@ -1483,7 +1441,7 @@ class LeetCodeHelper {
             ${numBadge}
             ${problem.title}
             ${isMastered ? '<span class="sr-hm-badge gold">⭐</span>' : ''}
-            ${isOverdue ? '<span class="sr-hm-badge red">逾期</span>' : ''}
+            ${isOverdue ? `<span class="sr-hm-badge red">${this.trText(`逾期 ${overdueDays} 天`)}</span>` : ''}
           </div>
           ${diffSpan}
         </div>
@@ -1499,12 +1457,6 @@ class LeetCodeHelper {
   }
 
   bindHomeCardEvents(container) {
-    container.querySelectorAll('[data-action="open-overdue"]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (btn.dataset.url) window.location.href = btn.dataset.url;
-      });
-    });
     container.querySelectorAll('[data-action="open-title"]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1525,22 +1477,6 @@ class LeetCodeHelper {
           this.showNotification('已删除', 'info');
           this.refreshHomeIfOpen();
           this.checkProblemStatus();
-        }
-      });
-    });
-    container.querySelectorAll('[data-action="ignore-overdue"]').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const slug = btn.dataset.slug;
-        const index = parseInt(btn.dataset.index, 10);
-        const resp = await this.safeSendMessage({ action: 'removeReviewDate', slug, index });
-        if (resp && resp.success) {
-          this.showNotification('已移除', 'info');
-          this.refreshHomeIfOpen();
-          this.checkProblemStatus();
-          this.checkTodayStatus();
-        } else {
-          this.showNotification(resp?.error || '删除失败', 'error');
         }
       });
     });
@@ -2284,6 +2220,74 @@ class LeetCodeHelper {
     });
   }
 
+  showDetailSubmitReviewModal(problem) {
+    this.removeModal();
+    const isCustom = !!problem.isCustom;
+    const infoBadge = isCustom
+      ? `<span class="sr-custom-badge" style="font-size:15px">📝</span>`
+      : `<span class="sr-problem-badge">#${problem.number}</span>`;
+    const diffBadge = isCustom
+      ? ''
+      : `<span class="sr-difficulty-badge ${problem.difficulty.toLowerCase()}">${problem.difficulty}</span>`;
+    const titleStyle = isCustom ? ' style="font-size:16px;font-weight:700;color:#1e40af"' : '';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'leetcode-sr-modal-overlay';
+    overlay.className = 'leetcode-sr-overlay';
+
+    const modal = document.createElement('div');
+    modal.className = 'leetcode-sr-modal';
+    modal.style.zoom = this.scale;
+    modal.innerHTML = `
+      <div class="leetcode-sr-modal-header">
+        <h3>✅ ${this.tr('提交复习')}</h3>
+        <button class="leetcode-sr-modal-close" id="sr-modal-close">&times;</button>
+      </div>
+      <div class="leetcode-sr-modal-body">
+        <div class="leetcode-sr-modal-info">
+          ${infoBadge}
+          <span class="sr-problem-name"${titleStyle}>${problem.title}</span>
+          ${diffBadge}
+        </div>
+        <div class="sr-note-form-compact">
+          <input type="text" id="sr-review-time" placeholder="${this.tr('用时（如: 15min）')}" class="sr-text-input">
+          <textarea id="sr-review-comment" placeholder="${this.tr('笔记（可选）')}" class="sr-text-input sr-textarea" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="leetcode-sr-modal-footer">
+        <button class="sr-btn-cancel" id="sr-modal-cancel">${this.tr('取消')}</button>
+        <button class="sr-btn-confirm" id="sr-modal-confirm">${this.tr('提交')}</button>
+      </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    this.modalOverlay = overlay;
+    this.localize(overlay);
+
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
+    modal.querySelector('#sr-modal-close').addEventListener('click', () => this.removeModal());
+    modal.querySelector('#sr-modal-cancel').addEventListener('click', () => this.removeModal());
+    modal.querySelector('#sr-modal-confirm').addEventListener('click', async () => {
+      const time = document.getElementById('sr-review-time').value.trim();
+      const comment = document.getElementById('sr-review-comment').value.trim();
+      const resp = await this.safeSendMessage({
+        action: 'markReviewed', slug: problem.slug,
+        time: time || null, comment: comment || null
+      });
+      if (resp && resp.success && resp.counted === false) {
+        this.showNotification('ℹ️ ' + this.tr('未到计划日期，仅记录笔记'), 'info');
+      } else {
+        this.showNotification('✅ ' + this.tr('复习已提交！'), 'success');
+      }
+      this.removeModal();
+      this.checkProblemStatus();
+      this.checkTodayStatus();
+      this.refreshHomeIfOpen();
+      if (this.todayPanelOpen) await this.refreshTodayPanel();
+    });
+  }
+
   // ============ 题目详情弹窗 ============
   async showProblemDetailModal(slugParam) {
     if (this.isDragging) return;
@@ -2330,6 +2334,17 @@ class LeetCodeHelper {
     history.forEach(h => {
       const dayLabel = h.dayLabel != null ? `Day ${h.dayLabel}` : 'Notes';
       const detailLines = [];
+      if (h.dueDate && h.submittedAt) {
+        const dueDayStart = this.getStartOfDayTs(h.dueDate);
+        const submitDayStart = this.getStartOfDayTs(h.submittedAt);
+        if (submitDayStart > dueDayStart) {
+          const lateDays = Math.round((submitDayStart - dueDayStart) / 86400000);
+          detailLines.push({
+            className: 'sr-history-late',
+            text: `⏰ ${this.tr('计划')} ${new Date(h.dueDate).toLocaleDateString()} · ${this.trText(`补交(+${lateDays}天)`)}`
+          });
+        }
+      }
       if (h.comment) detailLines.push({ className: 'sr-history-comment', text: `📝 ${h.comment}` });
       mergedHistory.push({
         timestamp: h.timestamp,
@@ -2449,6 +2464,7 @@ class LeetCodeHelper {
       </div>
       <div class="leetcode-sr-modal-footer sr-footer-multi">
         <button class="sr-btn-home" id="sr-modal-home" title="主页" aria-label="主页"><span class="sr-btn-home-icon">🏠</span></button>
+        <button class="sr-btn-submit-review" id="sr-submit-review">${this.tr('✅ 提交复习')}</button>
         <button class="sr-btn-master ${isMastered ? 'sr-unmaster' : ''}" id="sr-master">${isMastered ? '取消掌握' : '⭐ 标记掌握'}</button>
         <button class="sr-btn-delete" id="sr-delete">删除题目</button>
       </div>
@@ -2482,6 +2498,11 @@ class LeetCodeHelper {
     modal.querySelector('#sr-readd').addEventListener('click', () => {
       this.removeModal();
       this.showReaddModal(problem.slug, true);
+    });
+
+    modal.querySelector('#sr-submit-review').addEventListener('click', () => {
+      this.removeModal();
+      this.showDetailSubmitReviewModal(problem);
     });
 
     modal.querySelector('#sr-master').addEventListener('click', async () => {
