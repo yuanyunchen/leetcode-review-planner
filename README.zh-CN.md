@@ -22,27 +22,24 @@
 **A）题目页入口与快捷操作**  
 使用流程从题目页直接开始。展开右侧浮窗后即可快速加入/提交复习；当日复习面板可一键跳转到当天待复习题目。
 
-<p>
-  <img src="images/01-problem-page-widget.png" alt="Problem page widget" width="49%" align="middle">
-  <img src="images/02-widget-today-panel.png" alt="Today review panel from widget" width="49%" align="middle">
-</p>
+| 题目页浮窗 | 当日复习面板 |
+|---|---|
+| <img src="images/01-problem-page-widget.png" alt="Problem page widget" width="420"> | <img src="images/02-widget-today-panel.png" alt="Today review panel from widget" width="420"> |
 
 **B）计划设置、复习提交与记录追踪**  
 加入题目时可选择完整/精简/自定义计划，并保存可选的用时与笔记；提交复习后可在记录页持续追踪历史与进度。
 
-<p>
-  <img src="images/03-add-plan-modal.png" alt="Add to review plan modal" width="49%" align="middle">
-  <img src="images/05-problem-record-modal.png" alt="Problem record modal" width="49%" align="middle">
-</p>
+| 加入复习弹窗 | 题目记录弹窗 |
+|---|---|
+| <img src="images/03-add-plan-modal.png" alt="Add to review plan modal" width="420"> | <img src="images/05-problem-record-modal.png" alt="Problem record modal" width="420"> |
 
 
 **C）主页管理与个性化设置**  
 主页“全部题目”支持搜索、标签筛选与快捷操作，方便日常集中管理；设置页可调整语言、默认计划、界面缩放和间隔模板。
 
-<p>
-  <img src="images/06-home-all-problems.png" alt="Home all problems view" width="49%" align="middle">
-  <img src="images/07-home-settings.png" alt="Home settings view" width="49%" align="middle">
-</p>
+| 主页全部题目 | 主页设置 |
+|---|---|
+| <img src="images/06-home-all-problems.png" alt="Home all problems view" width="420"> | <img src="images/07-home-settings.png" alt="Home settings view" width="420"> |
 
 ## ✨ 功能亮点
 
