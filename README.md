@@ -36,24 +36,24 @@ You can also edit interval plans in Settings.
 **A) Problem-page entry and quick actions**  
 The workflow starts directly on the problem page. Expand the floating widget to add or submit reviews, and open the Today panel to jump to due tasks immediately.
 
-| Problem page widget | Today review panel from widget |
+| | |
 |---|---|
-| <img src="images/01-problem-page-widget.png" alt="Problem page widget" width="420"> | <img src="images/02-widget-today-panel.png" alt="Today review panel from widget" width="420"> |
+| <img src="images/01-problem-page-widget.png" alt="Problem page widget" width="420"> | <img src="images/02-widget-today-panel.png" alt="Today review panel" width="420"> |
 
 **B) Plan setup, submission, and records**  
 When adding a problem, choose Full/Light/Custom intervals and optionally save notes/time. During review, submit time and notes in one focused modal, then track full progress in the record view.
 
-| Add to review plan modal | Problem record modal |
+| | |
 |---|---|
-| <img src="images/03-add-plan-modal.png" alt="Add to review plan modal" width="420"> | <img src="images/05-problem-record-modal.png" alt="Problem record modal" width="420"> |
+| <img src="images/03-add-plan-modal.png" alt="Add to review plan" width="420"> | <img src="images/05-problem-record-modal.png" alt="Problem record" width="420"> |
 
 
 **C) Home management and personalization**  
 The Home "All Problems" view supports search, tags, and quick actions for daily management. Settings lets you tune language, default plan, UI scale, and interval templates.
 
-| Home all problems view | Home settings view |
+| | |
 |---|---|
-| <img src="images/06-home-all-problems.png" alt="Home all problems view" width="420"> | <img src="images/07-home-settings.png" alt="Home settings view" width="420"> |
+| <img src="images/06-home-all-problems.png" alt="Home all problems" width="420"> | <img src="images/07-home-settings.png" alt="Home settings" width="420"> |
 
 
 ## ✨ Features
