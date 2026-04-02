@@ -500,6 +500,14 @@ textarea:focus-visible {
   animation: modalUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+.sr-home-modal:focus {
+  outline: none;
+}
+
+.sr-home-modal:focus-visible {
+  box-shadow: 0 28px 64px rgba(15, 23, 42, 0.24), 0 0 0 1px rgba(255, 255, 255, 0.35), 0 0 0 3px rgba(99, 102, 241, 0.35);
+}
+
 @keyframes modalUp {
   from { opacity: 0; transform: translateY(16px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -801,7 +809,7 @@ textarea:focus-visible {
   background: linear-gradient(180deg, #f8fafc 0%, #f4f7ff 100%);
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 9px 10px;
+  padding: 8px 10px 1px;
   margin-bottom: 10px;
 }
 
@@ -810,6 +818,66 @@ textarea:focus-visible {
   font-weight: 700;
   color: #64748b;
   margin-bottom: 6px;
+}
+
+.sr-hm-tag-list-outer {
+  overflow: hidden;
+  transition: max-height 0.28s ease;
+}
+
+.sr-hm-tag-list-outer--collapsed {
+  max-height: 58px;
+}
+
+.sr-hm-tag-list-outer--expanded {
+  max-height: 2000px;
+}
+
+.sr-hm-tag-toggle-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 1px;
+  margin-bottom: 0;
+  line-height: 0;
+}
+
+.sr-hm-tag-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 52px;
+  height: 16px;
+  min-height: 16px;
+  max-height: 16px;
+  padding: 0 24px;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: #4f46e5;
+  cursor: pointer;
+  border-radius: 4px;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.sr-hm-tag-toggle:hover {
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.sr-hm-tag-toggle-chevron {
+  display: block;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  transform-origin: 50% 35%;
+  transition: transform 0.2s ease;
+}
+
+.sr-hm-tag-toggle[aria-expanded='true'] .sr-hm-tag-toggle-chevron {
+  transform: rotate(180deg);
 }
 
 .sr-hm-tag-list {
@@ -2867,6 +2935,14 @@ textarea:focus-visible {
     color: #9ca3af;
   }
 
+  .sr-hm-tag-toggle {
+    color: #a5b4fc;
+  }
+
+  .sr-hm-tag-toggle:hover {
+    background: rgba(129, 140, 248, 0.12);
+  }
+
   .sr-hm-top-tag {
     background: #312e81;
     border-color: #4f46e5;
@@ -3608,6 +3684,14 @@ textarea:focus-visible {
 .sr-hm-tag-panel {
   background: linear-gradient(180deg, #f8fbff 0%, #f3f8ff 100%);
   border-color: #dbe7f5;
+}
+
+.sr-hm-tag-toggle {
+  color: #245ec6;
+}
+
+.sr-hm-tag-toggle:hover {
+  background: rgba(36, 94, 198, 0.1);
 }
 
 .sr-hm-top-tag,

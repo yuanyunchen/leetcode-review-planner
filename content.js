@@ -18,6 +18,7 @@ class LeetCodeHelper {
     this.homeAllProblems = [];
     this.homeSearchQuery = '';
     this.homeActiveTag = null;
+    this.homeTagListExpanded = false;
     this.init();
   }
 
@@ -90,6 +91,29 @@ class LeetCodeHelper {
     return LRS_I18N.translateText(this.uiLanguage, text);
   }
 
+  async getPlanTemplateCounts() {
+    try {
+      const resp = await this.safeSendMessage({ action: 'getPlanTemplates' });
+      const t = resp?.templates || {};
+      const fl = t.full?.intervals?.length;
+      const hl = t.half?.intervals?.length;
+      return {
+        full: typeof fl === 'number' && fl > 0 ? fl : 6,
+        half: typeof hl === 'number' && hl > 0 ? hl : 3
+      };
+    } catch (e) {
+      return { full: 6, half: 3 };
+    }
+  }
+
+  async getPlanOptionLabels() {
+    const { full, half } = await this.getPlanTemplateCounts();
+    return {
+      full: this.trText(`🔥 完整复习 (${full}次)`),
+      half: this.trText(`⚡ 精简复习 (${half}次)`)
+    };
+  }
+
   localize(root) {
     if (!globalThis.LRS_I18N || !root) return;
     LRS_I18N.localizeElement(this.uiLanguage, root, {
@@ -106,6 +130,89 @@ class LeetCodeHelper {
         '.sr-hm-card-tag'
       ]
     });
+  }
+
+  /**
+   * Enter activates primary confirm. Uses capture on overlay so it still runs when the host
+   * page or focus quirks swallow bubbling; ignores textarea / select / radio / checkbox.
+   */
+  bindEnterActivatesPrimary(overlay, primarySelector) {
+    if (!overlay) return;
+    const primaryBtn = typeof primarySelector === 'string' ? overlay.querySelector(primarySelector) : primarySelector;
+    if (!primaryBtn) return;
+    const handler = (e) => {
+      if (e.key !== 'Enter' || e.repeat) return;
+      if (!overlay.contains(e.target)) return;
+      const t = e.target;
+      if (t.tagName === 'TEXTAREA') return;
+      if (t.isContentEditable) return;
+      if (t.tagName === 'SELECT') return;
+      if (t.tagName === 'INPUT') {
+        const type = (t.type || '').toLowerCase();
+        if (type === 'radio' || type === 'checkbox') return;
+        if (type === 'button' || type === 'submit' || type === 'reset') return;
+      }
+      const btn = t.closest && t.closest('button');
+      if (btn && btn !== primaryBtn) return;
+      if (t === primaryBtn || primaryBtn.contains(t)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      primaryBtn.click();
+    };
+    overlay.addEventListener('keydown', handler, true);
+  }
+
+  /** Move focus into the modal so Enter handling runs reliably on LeetCode (host page often keeps focus). */
+  focusModalField(modalRoot, selector) {
+    if (!modalRoot || !selector) return;
+    requestAnimationFrame(() => {
+      modalRoot.querySelector(selector)?.focus();
+    });
+  }
+
+  _shouldSkipPlanArrowNav(target) {
+    if (!target || target.nodeType !== 1) return true;
+    if (target.closest('.leetcode-sr-modal-footer') || target.closest('.leetcode-sr-modal-close')) return true;
+    if (target.tagName === 'TEXTAREA') return true;
+    if (target.tagName === 'SELECT') return true;
+    if (target.isContentEditable) return true;
+    if (target.tagName === 'INPUT') {
+      const t = (target.type || '').toLowerCase();
+      if (t === 'radio') return false;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * ArrowUp / ArrowDown cycle plan radios; skipped in text fields and textarea (notes / custom intervals).
+   */
+  bindPlanArrowKeys(overlay, modal, radioName, customWrapId) {
+    if (!overlay || !modal || !radioName) return;
+    const handler = (e) => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      if (!overlay.contains(e.target)) return;
+      if (this._shouldSkipPlanArrowNav(e.target)) return;
+      const radios = [...modal.querySelectorAll(`input[type="radio"][name="${radioName}"]`)];
+      if (radios.length === 0) return;
+      let idx = radios.findIndex(r => r.checked);
+      if (idx < 0) idx = 0;
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === 'ArrowDown') idx = (idx + 1) % radios.length;
+      else idx = (idx - 1 + radios.length) % radios.length;
+      const r = radios[idx];
+      r.checked = true;
+      r.focus();
+      modal.querySelectorAll('.leetcode-sr-plan-option').forEach(o => o.classList.remove('selected'));
+      const label = r.closest('.leetcode-sr-plan-option');
+      if (label) label.classList.add('selected');
+      if (customWrapId) {
+        const wrap = modal.querySelector(`#${customWrapId}`);
+        if (wrap) wrap.classList.toggle('hidden', r.value !== 'custom');
+      }
+    };
+    overlay.addEventListener('keydown', handler, true);
   }
 
   _escapeHtml(str) {
@@ -678,7 +785,7 @@ class LeetCodeHelper {
     if (this.isDragging) return;
     const mainButton = document.getElementById('leetcode-sr-button');
     if (mainButton.dataset.mode === 'added') this.showSubmitReviewModal();
-    else this.showPlanSelectionModal();
+    else void this.showPlanSelectionModal();
   }
 
   // ============ 当日复习面板 ============
@@ -732,7 +839,7 @@ class LeetCodeHelper {
           const dueTs = p.reviewDates[p.currentInterval];
           const dueStart = dueTs ? this.getStartOfDayTs(dueTs) : todayStart;
           const isOverdue = dueStart < todayStart;
-          const overdueDays = isOverdue ? Math.round((todayStart - dueStart) / 86400000) : 0;
+          const overdueDays = isOverdue ? Math.floor((todayStart - dueStart) / 86400000) : 0;
 
           const baseTs = p.planBaseAt || p.addedAt || 0;
           const planBase = baseTs ? this.getStartOfDayTs(baseTs) : 0;
@@ -793,6 +900,7 @@ class LeetCodeHelper {
 
     const modal = document.createElement('div');
     modal.className = 'sr-home-modal';
+    modal.tabIndex = -1;
     modal.style.zoom = this.scale;
 
     modal.innerHTML = `
@@ -843,6 +951,15 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.localize(modal);
 
+    modal.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      if (modal.querySelector('#sr-settings-view')) return;
+      const t = e.target;
+      if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable) return;
+      e.preventDefault();
+      this.switchHomeTabByKey(e.key === 'ArrowRight' ? 1 : -1);
+    }, true);
+
     // Events
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.closeHomeModal(); });
     modal.querySelector('#sr-hm-close').addEventListener('click', () => this.closeHomeModal());
@@ -872,6 +989,7 @@ class LeetCodeHelper {
     this.homeTodayDate = this.getStartOfDayTs();
     this.loadHomeStats();
     this.loadHomeTab('today');
+    requestAnimationFrame(() => modal.focus());
   }
 
   closeHomeModal() {
@@ -929,6 +1047,17 @@ class LeetCodeHelper {
     if (tab === 'today') this.loadHomeTodayTab();
     else if (tab === 'all') this.loadHomeAllTab();
     else if (tab === 'stats') this.loadHomeStatsTab();
+  }
+
+  switchHomeTabByKey(delta) {
+    const modal = document.querySelector('.sr-home-modal');
+    if (!modal || modal.querySelector('#sr-settings-view')) return;
+    const order = ['today', 'all', 'stats'];
+    let i = order.indexOf(this.homeCurrentTab);
+    if (i < 0) i = 0;
+    i = (i + delta + order.length) % order.length;
+    const tab = modal.querySelector(`.sr-hm-tab[data-tab="${order[i]}"]`);
+    if (tab) tab.click();
   }
 
   // ============ Date Navigation ============
@@ -1188,6 +1317,7 @@ class LeetCodeHelper {
       // 每次进入“全部题目”都刷新搜索和tag筛选状态
       this.homeSearchQuery = '';
       this.homeActiveTag = null;
+      this.homeTagListExpanded = false;
       const input = document.getElementById('sr-hm-search-input');
       if (input) input.value = '';
 
@@ -1200,6 +1330,32 @@ class LeetCodeHelper {
     }
   }
 
+  _bindHomeTagPanel(content) {
+    content.querySelectorAll('.sr-hm-top-tag[data-top-tag]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tag = btn.dataset.topTag;
+        if (this.homeActiveTag === tag) this.homeActiveTag = null;
+        else this.homeActiveTag = tag;
+        this.renderHomeAllList();
+      });
+    });
+    const toggle = content.querySelector('#sr-hm-tag-toggle');
+    const outer = content.querySelector('#sr-hm-tag-list-outer');
+    if (toggle && outer) {
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.homeTagListExpanded = !this.homeTagListExpanded;
+        outer.classList.toggle('sr-hm-tag-list-outer--collapsed', !this.homeTagListExpanded);
+        outer.classList.toggle('sr-hm-tag-list-outer--expanded', this.homeTagListExpanded);
+        toggle.setAttribute('aria-expanded', String(this.homeTagListExpanded));
+        toggle.setAttribute(
+          'aria-label',
+          this.homeTagListExpanded ? this.tr('收起标签') : this.tr('展开全部标签')
+        );
+      });
+    }
+  }
+
   renderHomeAllList() {
     const content = document.getElementById('sr-hm-content');
     if (!content) return;
@@ -1209,11 +1365,21 @@ class LeetCodeHelper {
       (p.tags || []).forEach(tag => { tagCountMap[tag] = (tagCountMap[tag] || 0) + 1; });
     });
     const sortedTags = Object.entries(tagCountMap).sort((a, b) => b[1] - a[1]);
+    const tagOuterClass = this.homeTagListExpanded
+      ? 'sr-hm-tag-list-outer sr-hm-tag-list-outer--expanded'
+      : 'sr-hm-tag-list-outer sr-hm-tag-list-outer--collapsed';
     const tagsPanelHtml = sortedTags.length > 0
       ? `
         <div class="sr-hm-tag-panel">
-          <div class="sr-hm-tag-list">
-            ${sortedTags.map(([tag, count]) => `<button class="sr-hm-top-tag ${this.homeActiveTag === tag ? 'active' : ''}" data-top-tag="${tag}">${tag} <span class="count">(${count})</span></button>`).join('')}
+          <div class="${tagOuterClass}" id="sr-hm-tag-list-outer">
+            <div class="sr-hm-tag-list">
+              ${sortedTags.map(([tag, count]) => `<button type="button" class="sr-hm-top-tag ${this.homeActiveTag === tag ? 'active' : ''}" data-top-tag="${this._escapeHtml(tag)}">${this._escapeHtml(tag)} <span class="count">(${count})</span></button>`).join('')}
+            </div>
+          </div>
+          <div class="sr-hm-tag-toggle-row">
+            <button type="button" class="sr-hm-tag-toggle" id="sr-hm-tag-toggle" aria-expanded="${this.homeTagListExpanded}" aria-label="${this._escapeHtml(this.homeTagListExpanded ? this.tr('收起标签') : this.tr('展开全部标签'))}">
+              <span class="sr-hm-tag-toggle-chevron" aria-hidden="true"></span>
+            </button>
           </div>
         </div>
       `
@@ -1221,12 +1387,16 @@ class LeetCodeHelper {
 
     let filtered = [...this.homeAllProblems];
     if (this.homeSearchQuery) {
-      filtered = filtered.filter(p => {
-        const tagsText = (p.tags || []).join(' ');
-        return `${p.number} ${p.title} ${p.slug} ${tagsText}`
-          .toLowerCase()
-          .includes(this.homeSearchQuery);
-      });
+      if (globalThis.LRS_SEARCH && typeof globalThis.LRS_SEARCH.filterAndRank === 'function') {
+        filtered = globalThis.LRS_SEARCH.filterAndRank(filtered, this.homeSearchQuery);
+      } else {
+        filtered = filtered.filter(p => {
+          const tagsText = (p.tags || []).join(' ');
+          return `${p.number} ${p.title} ${p.slug} ${tagsText}`
+            .toLowerCase()
+            .includes(this.homeSearchQuery);
+        });
+      }
     }
     if (this.homeActiveTag) {
       filtered = filtered.filter(p => (p.tags || []).includes(this.homeActiveTag));
@@ -1241,21 +1411,15 @@ class LeetCodeHelper {
           <div class="sr-hm-empty-sub">${this.homeAllProblems.length === 0 ? '在题目页面点击「加入复习」' : '试试其他关键词'}</div>
         </div>
       `;
+      this._bindHomeTagPanel(content);
+      this.localize(content);
       return;
     }
 
     content.innerHTML = `${tagsPanelHtml}${filtered.map(p => this.createHomeCard(p, 'all')).join('')}`;
     this.bindHomeCardEvents(content);
     this.localize(content);
-
-    content.querySelectorAll('.sr-hm-top-tag[data-top-tag]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tag = btn.dataset.topTag;
-        if (this.homeActiveTag === tag) this.homeActiveTag = null;
-        else this.homeActiveTag = tag;
-        this.renderHomeAllList();
-      });
-    });
+    this._bindHomeTagPanel(content);
   }
 
   // ============ 数据统计 Tab ============
@@ -1341,12 +1505,13 @@ class LeetCodeHelper {
         let count = problems.filter(p => {
           if (p.mastered || p.currentInterval >= p.reviewDates.length) return false;
           const next = p.reviewDates[p.currentInterval];
-          return next >= dStart && next < dEnd;
+          const dueDay = this.getStartOfDayTs(next);
+          return dueDay >= dStart && dueDay < dEnd;
         }).length;
         if (i === 0) {
           count += problems.filter(p => {
             if (p.mastered || p.currentInterval >= p.reviewDates.length) return false;
-            return p.reviewDates[p.currentInterval] < dStart;
+            return this.getStartOfDayTs(p.reviewDates[p.currentInterval]) < dStart;
           }).length;
         }
         const isToday = i === 0;
@@ -1403,21 +1568,21 @@ class LeetCodeHelper {
   // ============ Home Card ============
   createHomeCard(problem, context) {
     const nextReview = problem.reviewDates[problem.currentInterval];
-    const nextDate = nextReview ? new Date(nextReview) : null;
     const isCompleted = problem.currentInterval >= problem.reviewDates.length;
     const isMastered = problem.mastered;
     const progress = Math.min(problem.currentInterval || 0, problem.reviewDates.length);
     const totalR = problem.reviewDates.length;
     const pct = totalR > 0 ? Math.round((progress / totalR) * 100) : 0;
     const tags = (problem.tags || []).slice(0, 3);
-    const now = new Date(); now.setHours(0, 0, 0, 0);
-    const isOverdue = nextDate && nextDate < now && !isCompleted && !isMastered;
-    const overdueDays = isOverdue && nextDate ? Math.round((now.getTime() - nextDate.getTime()) / 86400000) : 0;
+    const todayStart = this.getStartOfDayTs();
+    const dueStart = nextReview != null ? this.getStartOfDayTs(nextReview) : null;
+    const isOverdue = dueStart != null && dueStart < todayStart && !isCompleted && !isMastered;
+    const overdueDays = isOverdue ? Math.floor((todayStart - dueStart) / 86400000) : 0;
 
     let statusText = '';
     if (isMastered) statusText = this.tr('⭐ 已掌握');
     else if (isCompleted) statusText = this.tr('✅ 已完成');
-    else if (nextDate) statusText = `📅 ${nextDate.toLocaleDateString()}`;
+    else if (dueStart != null) statusText = `📅 ${new Date(dueStart).toLocaleDateString()}`;
 
     const tagsHtml = tags.length > 0
       ? `<div class="sr-hm-card-tags">${tags.map(t => `<span class="sr-hm-card-tag" data-tag="${t}">${t}</span>`).join('')}</div>`
@@ -1537,6 +1702,8 @@ class LeetCodeHelper {
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
     this.localize(dialog);
+    this.bindEnterActivatesPrimary(overlay, '#sr-sub-confirm');
+    this.focusModalField(dialog, '#sr-sub-time');
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
     dialog.querySelector('#sr-sub-close').addEventListener('click', () => overlay.remove());
@@ -1836,14 +2003,16 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
+    this.bindEnterActivatesPrimary(overlay, '#sr-modal-confirm');
+    this.focusModalField(modal, '#sr-custom-title');
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
     modal.querySelector('#sr-modal-close').addEventListener('click', () => this.removeModal());
     modal.querySelector('#sr-modal-cancel').addEventListener('click', () => this.removeModal());
-    modal.querySelector('#sr-modal-confirm').addEventListener('click', () => this.showCustomProblemPlanModal());
+    modal.querySelector('#sr-modal-confirm').addEventListener('click', () => void this.showCustomProblemPlanModal());
   }
 
-  showCustomProblemPlanModal() {
+  async showCustomProblemPlanModal() {
     const title = document.getElementById('sr-custom-title')?.value.trim();
     if (!title) {
       this.showNotification(this.tr('请输入题目标题'), 'info');
@@ -1856,6 +2025,7 @@ class LeetCodeHelper {
 
     this.removeModal();
     const defaultIsHalf = this.defaultPlan === 'half';
+    const planLabels = await this.getPlanOptionLabels();
 
     const overlay = document.createElement('div');
     overlay.id = 'leetcode-sr-modal-overlay';
@@ -1877,11 +2047,11 @@ class LeetCodeHelper {
         <div class="leetcode-sr-plan-options">
           <label class="leetcode-sr-plan-option ${defaultIsHalf ? '' : 'selected'}" data-plan="full">
             <input type="radio" name="sr-plan" value="full" ${defaultIsHalf ? '' : 'checked'}>
-            <div class="sr-plan-content"><div class="sr-plan-title">🔥 完整复习 (6次)</div></div>
+            <div class="sr-plan-content"><div class="sr-plan-title">${planLabels.full}</div></div>
           </label>
           <label class="leetcode-sr-plan-option ${defaultIsHalf ? 'selected' : ''}" data-plan="half">
             <input type="radio" name="sr-plan" value="half" ${defaultIsHalf ? 'checked' : ''}>
-            <div class="sr-plan-content"><div class="sr-plan-title">⚡ 精简复习 (3次)</div></div>
+            <div class="sr-plan-content"><div class="sr-plan-title">${planLabels.half}</div></div>
           </label>
           <label class="leetcode-sr-plan-option" data-plan="custom">
             <input type="radio" name="sr-plan" value="custom">
@@ -1908,6 +2078,9 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
+    this.bindEnterActivatesPrimary(overlay, '#sr-modal-confirm');
+    this.focusModalField(modal, '#sr-add-time');
+    this.bindPlanArrowKeys(overlay, modal, 'sr-plan', 'sr-add-custom-wrap');
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
     modal.querySelector('#sr-modal-close').addEventListener('click', () => this.removeModal());
@@ -1960,11 +2133,13 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
+    this.bindEnterActivatesPrimary(overlay, '#sr-modal-confirm');
+    this.focusModalField(modal, '#sr-custom-title');
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
     modal.querySelector('#sr-modal-close').addEventListener('click', () => this.removeModal());
     modal.querySelector('#sr-modal-cancel').addEventListener('click', () => this.removeModal());
-    modal.querySelector('#sr-modal-confirm').addEventListener('click', () => this.showCustomProblemPlanModal());
+    modal.querySelector('#sr-modal-confirm').addEventListener('click', () => void this.showCustomProblemPlanModal());
   }
 
   async confirmAddCustomProblem() {
@@ -2031,9 +2206,10 @@ class LeetCodeHelper {
   }
 
   // ============ 加入复习弹窗 ============
-  showPlanSelectionModal() {
+  async showPlanSelectionModal() {
     this.removeModal();
     const defaultIsHalf = this.defaultPlan === 'half';
+    const planLabels = await this.getPlanOptionLabels();
 
     const overlay = document.createElement('div');
     overlay.id = 'leetcode-sr-modal-overlay';
@@ -2056,11 +2232,11 @@ class LeetCodeHelper {
         <div class="leetcode-sr-plan-options">
           <label class="leetcode-sr-plan-option ${defaultIsHalf ? '' : 'selected'}" data-plan="full">
             <input type="radio" name="sr-plan" value="full" ${defaultIsHalf ? '' : 'checked'}>
-            <div class="sr-plan-content"><div class="sr-plan-title">🔥 完整复习 (6次)</div></div>
+            <div class="sr-plan-content"><div class="sr-plan-title">${planLabels.full}</div></div>
           </label>
           <label class="leetcode-sr-plan-option ${defaultIsHalf ? 'selected' : ''}" data-plan="half">
             <input type="radio" name="sr-plan" value="half" ${defaultIsHalf ? 'checked' : ''}>
-            <div class="sr-plan-content"><div class="sr-plan-title">⚡ 精简复习 (3次)</div></div>
+            <div class="sr-plan-content"><div class="sr-plan-title">${planLabels.half}</div></div>
           </label>
           <label class="leetcode-sr-plan-option" data-plan="custom">
             <input type="radio" name="sr-plan" value="custom">
@@ -2087,6 +2263,9 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
+    this.bindEnterActivatesPrimary(overlay, '#sr-modal-confirm');
+    this.focusModalField(modal, '#sr-add-time');
+    this.bindPlanArrowKeys(overlay, modal, 'sr-plan', 'sr-add-custom-wrap');
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
     modal.querySelector('#sr-modal-close').addEventListener('click', () => this.removeModal());
@@ -2196,6 +2375,8 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
+    this.bindEnterActivatesPrimary(overlay, '#sr-modal-confirm');
+    this.focusModalField(modal, '#sr-review-time');
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
     modal.querySelector('#sr-modal-close').addEventListener('click', () => this.removeModal());
@@ -2264,6 +2445,8 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
+    this.bindEnterActivatesPrimary(overlay, '#sr-modal-confirm');
+    this.focusModalField(modal, '#sr-review-time');
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
     modal.querySelector('#sr-modal-close').addEventListener('click', () => this.removeModal());
@@ -2497,7 +2680,7 @@ class LeetCodeHelper {
 
     modal.querySelector('#sr-readd').addEventListener('click', () => {
       this.removeModal();
-      this.showReaddModal(problem.slug, true);
+      void this.showReaddModal(problem.slug, true);
     });
 
     modal.querySelector('#sr-submit-review').addEventListener('click', () => {
@@ -2594,6 +2777,8 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
+    this.bindEnterActivatesPrimary(overlay, '#sr-extra-confirm');
+    this.focusModalField(modal, '#sr-extra-days');
 
     const closeDialog = () => {
       this.removeModal();
@@ -2623,9 +2808,10 @@ class LeetCodeHelper {
   }
 
   // ============ 重新加入弹窗 ============
-  showReaddModal(slug, returnToDetail = false) {
+  async showReaddModal(slug, returnToDetail = false) {
     this.removeModal();
     const defaultIsHalf = this.defaultPlan === 'half';
+    const planLabels = await this.getPlanOptionLabels();
 
     const overlay = document.createElement('div');
     overlay.id = 'leetcode-sr-modal-overlay';
@@ -2644,11 +2830,11 @@ class LeetCodeHelper {
         <div class="leetcode-sr-plan-options">
           <label class="leetcode-sr-plan-option ${defaultIsHalf ? '' : 'selected'}" data-plan="full">
             <input type="radio" name="sr-readd-plan" value="full" ${defaultIsHalf ? '' : 'checked'}>
-            <div class="sr-plan-content"><div class="sr-plan-title">🔥 完整复习 (6次)</div></div>
+            <div class="sr-plan-content"><div class="sr-plan-title">${planLabels.full}</div></div>
           </label>
           <label class="leetcode-sr-plan-option ${defaultIsHalf ? 'selected' : ''}" data-plan="half">
             <input type="radio" name="sr-readd-plan" value="half" ${defaultIsHalf ? 'checked' : ''}>
-            <div class="sr-plan-content"><div class="sr-plan-title">⚡ 精简复习 (3次)</div></div>
+            <div class="sr-plan-content"><div class="sr-plan-title">${planLabels.half}</div></div>
           </label>
           <label class="leetcode-sr-plan-option" data-plan="custom">
             <input type="radio" name="sr-readd-plan" value="custom">
@@ -2670,6 +2856,9 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
+    this.bindEnterActivatesPrimary(overlay, '#sr-readd-confirm');
+    this.focusModalField(modal, 'input[name="sr-readd-plan"]');
+    this.bindPlanArrowKeys(overlay, modal, 'sr-readd-plan', 'sr-readd-custom-wrap');
 
     const closeDialog = () => {
       this.removeModal();
@@ -2769,5 +2958,131 @@ class LeetCodeHelper {
     });
   }
 }
+
+(function initLrsSearch() {
+  'use strict';
+
+  function normalizeForSearch(s) {
+    if (s == null || s === '') return '';
+    let t = String(s).normalize('NFKC').toLowerCase();
+    t = t.replace(/[\s_\-./+|]+/g, ' ');
+    try {
+      t = t.replace(/[^\p{L}\p{N}\s]/gu, ' ');
+    } catch (e) {
+      t = t.replace(/[^a-z0-9\u0080-\uFFFF\s]/gi, ' ');
+    }
+    return t.replace(/\s+/g, ' ').trim();
+  }
+
+  function tokenize(query) {
+    const n = normalizeForSearch(query);
+    if (!n) return [];
+    return n.split(' ').filter(Boolean);
+  }
+
+  function isSubsequence(needle, hay) {
+    if (!needle) return true;
+    let i = 0;
+    for (let j = 0; j < hay.length && i < needle.length; j++) {
+      if (hay[j] === needle[i]) i++;
+    }
+    return i === needle.length;
+  }
+
+  function scoreProblem(problem, queryRaw) {
+    const q = String(queryRaw || '').trim();
+    if (!q) return { score: 0, match: true };
+
+    const fullNorm = normalizeForSearch(q);
+    const toks = tokenize(q);
+    if (!fullNorm && toks.length === 0) return { score: 0, match: true };
+
+    const titleN = normalizeForSearch(problem.title || '');
+    const slugRaw = String(problem.slug || '');
+    const slugN = normalizeForSearch(slugRaw.replace(/-/g, ' '));
+    const slugCompact = normalizeForSearch(slugRaw.replace(/-/g, '')).replace(/\s/g, '');
+    const numStr = String(problem.number != null ? problem.number : '').trim();
+    const tags = problem.tags || [];
+    const tagsN = tags.map(t => normalizeForSearch(t));
+
+    const haystack = normalizeForSearch(
+      [problem.title, numStr, slugRaw, tags.join(' ')].join(' ')
+    );
+
+    let score = 0;
+
+    if (fullNorm.length >= 2 && haystack.includes(fullNorm)) {
+      score += 130;
+    }
+
+    let tokenHits = 0;
+    for (const tok of toks) {
+      const ntok = normalizeForSearch(tok);
+      if (!ntok) continue;
+
+      let best = 0;
+
+      if (numStr && numStr === ntok) {
+        best = Math.max(best, 115);
+      } else if (numStr && ntok.length >= 2 && numStr.includes(ntok)) {
+        best = Math.max(best, 62);
+      }
+
+      if (titleN.startsWith(ntok)) best = Math.max(best, 62);
+      else if (titleN.includes(ntok)) best = Math.max(best, 50);
+
+      for (const t of tagsN) {
+        if (t === ntok) best = Math.max(best, 52);
+        else if (t.includes(ntok)) best = Math.max(best, 40);
+      }
+
+      if (slugN.includes(ntok)) best = Math.max(best, 34);
+      const tokCompact = ntok.replace(/\s/g, '');
+      if (tokCompact && slugCompact.includes(tokCompact)) best = Math.max(best, 30);
+
+      if (best < 24 && haystack.includes(ntok)) best = Math.max(best, 26);
+
+      if (best > 0) tokenHits++;
+      score += best;
+    }
+
+    if (toks.length > 1 && tokenHits === toks.length) {
+      score += 32;
+    }
+
+    const titleCompact = titleN.replace(/\s/g, '');
+    const qCompact = fullNorm.replace(/\s/g, '');
+    if (qCompact.length >= 2 && titleCompact.length >= qCompact.length) {
+      if (isSubsequence(qCompact, titleCompact)) {
+        score += score < 75 ? 52 : 18;
+      }
+    }
+
+    return { score, match: score > 0 };
+  }
+
+  function filterAndRank(problems, queryRaw) {
+    const q = String(queryRaw || '').trim();
+    if (!q) return problems.slice();
+
+    const scored = [];
+    for (const p of problems) {
+      const r = scoreProblem(p, q);
+      if (r.match) scored.push({ p, score: r.score });
+    }
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return (b.p.addedAt || 0) - (a.p.addedAt || 0);
+    });
+    return scored.map(x => x.p);
+  }
+
+  globalThis.LRS_SEARCH = {
+    normalizeForSearch,
+    tokenize,
+    scoreProblem,
+    filterAndRank
+  };
+})();
 
 new LeetCodeHelper();

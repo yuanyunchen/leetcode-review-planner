@@ -49,10 +49,49 @@ class PopupManager {
     return LRS_I18N.translateText(this.uiLanguage, text);
   }
 
+  _dayStartTs(ts = Date.now()) {
+    const d = new Date(ts);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+
   localize(root) {
     if (!globalThis.LRS_I18N || !root) return;
     LRS_I18N.localizeElement(this.uiLanguage, root, {
       skipSelectors: ['.problem-title', '.record-comment', '.card-last-review', '.tag']
+    });
+  }
+
+  bindEnterActivatesPrimary(overlay, primarySelector) {
+    if (!overlay) return;
+    const primaryBtn = typeof primarySelector === 'string' ? overlay.querySelector(primarySelector) : primarySelector;
+    if (!primaryBtn) return;
+    const handler = (e) => {
+      if (e.key !== 'Enter' || e.repeat) return;
+      if (!overlay.contains(e.target)) return;
+      const t = e.target;
+      if (t.tagName === 'TEXTAREA') return;
+      if (t.isContentEditable) return;
+      if (t.tagName === 'SELECT') return;
+      if (t.tagName === 'INPUT') {
+        const type = (t.type || '').toLowerCase();
+        if (type === 'radio' || type === 'checkbox') return;
+        if (type === 'button' || type === 'submit' || type === 'reset') return;
+      }
+      const btn = t.closest && t.closest('button');
+      if (btn && btn !== primaryBtn) return;
+      if (t === primaryBtn || primaryBtn.contains(t)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      primaryBtn.click();
+    };
+    overlay.addEventListener('keydown', handler, true);
+  }
+
+  focusDialogField(overlay, selector) {
+    if (!overlay || !selector) return;
+    requestAnimationFrame(() => {
+      overlay.querySelector(selector)?.focus();
     });
   }
 
@@ -164,7 +203,8 @@ class PopupManager {
           if (p.mastered) return false;
           if (p.currentInterval >= p.reviewDates.length) return false;
           const next = p.reviewDates[p.currentInterval];
-          return next >= dStart && next < dEnd;
+          const dueDay = this._dayStartTs(next);
+          return dueDay >= dStart && dueDay < dEnd;
         }).length;
 
         let overdueCount = 0;
@@ -172,7 +212,7 @@ class PopupManager {
           overdueCount = problems.filter(p => {
             if (p.mastered) return false;
             if (p.currentInterval >= p.reviewDates.length) return false;
-            return p.reviewDates[p.currentInterval] < dStart;
+            return this._dayStartTs(p.reviewDates[p.currentInterval]) < dStart;
           }).length;
         }
 
@@ -291,9 +331,16 @@ class PopupManager {
     let filtered = [...this.allProblems];
 
     if (this.searchQuery) {
-      filtered = filtered.filter(p => {
-        return `${p.number} ${p.title} ${p.slug}`.toLowerCase().includes(this.searchQuery);
-      });
+      if (globalThis.LRS_SEARCH && typeof globalThis.LRS_SEARCH.filterAndRank === 'function') {
+        filtered = globalThis.LRS_SEARCH.filterAndRank(filtered, this.searchQuery);
+      } else {
+        filtered = filtered.filter(p => {
+          const tagsText = (p.tags || []).join(' ');
+          return `${p.number} ${p.title} ${p.slug} ${tagsText}`
+            .toLowerCase()
+            .includes(this.searchQuery);
+        });
+      }
     }
 
     if (this.activeTag) {
@@ -320,7 +367,6 @@ class PopupManager {
   // ============ 题目卡片 ============
   createProblemCard(problem, context) {
     const nextReview = problem.reviewDates[problem.currentInterval];
-    const nextReviewDate = nextReview ? new Date(nextReview) : null;
     const isCompleted = problem.currentInterval >= problem.reviewDates.length;
     const isMastered = problem.mastered;
     const tags = problem.tags || [];
@@ -329,9 +375,9 @@ class PopupManager {
     const progressPct = total > 0 ? Math.round((progress / total) * 100) : 0;
     const addedDate = new Date(problem.addedAt).toLocaleDateString();
 
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    const isOverdue = nextReviewDate && nextReviewDate < now && !isCompleted && !isMastered;
+    const todayStart = this._dayStartTs();
+    const dueStart = nextReview != null ? this._dayStartTs(nextReview) : null;
+    const isOverdue = dueStart != null && dueStart < todayStart && !isCompleted && !isMastered;
 
     const tagsHtml = tags.length > 0
       ? `<div class="problem-tags">${tags.map(tag => `<span class="tag" data-tag="${tag}">${tag}</span>`).join('')}</div>`
@@ -343,7 +389,7 @@ class PopupManager {
     let metaText = '';
     if (isMastered) metaText = '⭐ 已掌握';
     else if (isCompleted) metaText = '✅ 已完成所有复习';
-    else if (nextReviewDate) metaText = `📅 下次: ${nextReviewDate.toLocaleDateString()}`;
+    else if (dueStart != null) metaText = `📅 下次: ${new Date(dueStart).toLocaleDateString()}`;
 
     // 最近一条复习记录
     const history = problem.reviewHistory || [];
@@ -482,6 +528,8 @@ class PopupManager {
 
     document.body.appendChild(overlay);
     this.localize(overlay);
+    this.bindEnterActivatesPrimary(overlay, '#dialog-confirm');
+    this.focusDialogField(overlay, '#dialog-time');
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeDialog(); });
     document.getElementById('dialog-close').addEventListener('click', () => this.removeDialog());
@@ -598,6 +646,7 @@ class PopupManager {
 
     document.body.appendChild(overlay);
     this.localize(overlay);
+    this.bindEnterActivatesPrimary(overlay, '#dialog-close-btn');
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeDialog(); });
     document.getElementById('dialog-close').addEventListener('click', () => this.removeDialog());
@@ -772,5 +821,131 @@ class PopupManager {
     }
   }
 }
+
+(function initLrsSearch() {
+  'use strict';
+
+  function normalizeForSearch(s) {
+    if (s == null || s === '') return '';
+    let t = String(s).normalize('NFKC').toLowerCase();
+    t = t.replace(/[\s_\-./+|]+/g, ' ');
+    try {
+      t = t.replace(/[^\p{L}\p{N}\s]/gu, ' ');
+    } catch (e) {
+      t = t.replace(/[^a-z0-9\u0080-\uFFFF\s]/gi, ' ');
+    }
+    return t.replace(/\s+/g, ' ').trim();
+  }
+
+  function tokenize(query) {
+    const n = normalizeForSearch(query);
+    if (!n) return [];
+    return n.split(' ').filter(Boolean);
+  }
+
+  function isSubsequence(needle, hay) {
+    if (!needle) return true;
+    let i = 0;
+    for (let j = 0; j < hay.length && i < needle.length; j++) {
+      if (hay[j] === needle[i]) i++;
+    }
+    return i === needle.length;
+  }
+
+  function scoreProblem(problem, queryRaw) {
+    const q = String(queryRaw || '').trim();
+    if (!q) return { score: 0, match: true };
+
+    const fullNorm = normalizeForSearch(q);
+    const toks = tokenize(q);
+    if (!fullNorm && toks.length === 0) return { score: 0, match: true };
+
+    const titleN = normalizeForSearch(problem.title || '');
+    const slugRaw = String(problem.slug || '');
+    const slugN = normalizeForSearch(slugRaw.replace(/-/g, ' '));
+    const slugCompact = normalizeForSearch(slugRaw.replace(/-/g, '')).replace(/\s/g, '');
+    const numStr = String(problem.number != null ? problem.number : '').trim();
+    const tags = problem.tags || [];
+    const tagsN = tags.map(t => normalizeForSearch(t));
+
+    const haystack = normalizeForSearch(
+      [problem.title, numStr, slugRaw, tags.join(' ')].join(' ')
+    );
+
+    let score = 0;
+
+    if (fullNorm.length >= 2 && haystack.includes(fullNorm)) {
+      score += 130;
+    }
+
+    let tokenHits = 0;
+    for (const tok of toks) {
+      const ntok = normalizeForSearch(tok);
+      if (!ntok) continue;
+
+      let best = 0;
+
+      if (numStr && numStr === ntok) {
+        best = Math.max(best, 115);
+      } else if (numStr && ntok.length >= 2 && numStr.includes(ntok)) {
+        best = Math.max(best, 62);
+      }
+
+      if (titleN.startsWith(ntok)) best = Math.max(best, 62);
+      else if (titleN.includes(ntok)) best = Math.max(best, 50);
+
+      for (const t of tagsN) {
+        if (t === ntok) best = Math.max(best, 52);
+        else if (t.includes(ntok)) best = Math.max(best, 40);
+      }
+
+      if (slugN.includes(ntok)) best = Math.max(best, 34);
+      const tokCompact = ntok.replace(/\s/g, '');
+      if (tokCompact && slugCompact.includes(tokCompact)) best = Math.max(best, 30);
+
+      if (best < 24 && haystack.includes(ntok)) best = Math.max(best, 26);
+
+      if (best > 0) tokenHits++;
+      score += best;
+    }
+
+    if (toks.length > 1 && tokenHits === toks.length) {
+      score += 32;
+    }
+
+    const titleCompact = titleN.replace(/\s/g, '');
+    const qCompact = fullNorm.replace(/\s/g, '');
+    if (qCompact.length >= 2 && titleCompact.length >= qCompact.length) {
+      if (isSubsequence(qCompact, titleCompact)) {
+        score += score < 75 ? 52 : 18;
+      }
+    }
+
+    return { score, match: score > 0 };
+  }
+
+  function filterAndRank(problems, queryRaw) {
+    const q = String(queryRaw || '').trim();
+    if (!q) return problems.slice();
+
+    const scored = [];
+    for (const p of problems) {
+      const r = scoreProblem(p, q);
+      if (r.match) scored.push({ p, score: r.score });
+    }
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return (b.p.addedAt || 0) - (a.p.addedAt || 0);
+    });
+    return scored.map(x => x.p);
+  }
+
+  globalThis.LRS_SEARCH = {
+    normalizeForSearch,
+    tokenize,
+    scoreProblem,
+    filterAndRank
+  };
+})();
 
 new PopupManager();
