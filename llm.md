@@ -381,134 +381,49 @@ this.localize(domElement)      // -> calls LRS_I18N.localizeElement(this.uiLangu
 
 ---
 
-## 13. Git and GitHub
+## 13. Git Commit Instructions
 
-### 13.1 Version Numbering
+When user says "commit" or "push to GitHub", execute these steps in order:
 
-**Current version: v2.0.0**
+### Step 1 -- Version bump
 
-Format: `v<MAJOR>.<MINOR>.<PATCH>`
+Determine bump type from changes, then calculate new version:
+- **PATCH** +1: bug fix, typo, micro tweak (v2.1.12 -> v2.1.13)
+- **MINOR** +1, PATCH reset: new feature, UI change (v2.1.12 -> v2.2.0)
+- **MAJOR** +1: breaking change, architecture rewrite (v2.x.x -> v3.0.0)
 
-| Change scope | Version bump | Example |
-|-------------|-------------|---------|
-| Bug fix, typo, micro tweak | PATCH +1 | v2.1.12 -> v2.1.13 |
-| New feature, UI enhancement, new modal/tab, new message action | MINOR +1, PATCH reset to 0 | v2.1.12 -> v2.2.0 |
-| Breaking change, architecture rewrite, storage migration | MAJOR +1 | v2.x.x -> v3.0.0 |
+### Step 2 -- Update version in 3 places
 
-**Version sync locations** -- when bumping version, update ALL of these:
+1. `manifest.json` -- `"version"` field
+2. `popup.html` -- footer `<span>vX.Y.Z</span>`
+3. `history.md` -- append new version section at end (this file is gitignored)
 
-| Location | Field |
-|----------|-------|
-| `manifest.json` | `"version"` |
-| `popup.html` | Footer `<span>v2.x</span>` |
-| `history.md` | Append new version section (local only, not in git) |
+### Step 3 -- Commit and push
 
-### 13.2 Commit Workflow (Step by Step)
-
-When user says "commit" or "push to GitHub", follow these steps in order:
-
-**Step 1 -- Determine version bump**
-- Review all changes since last commit
-- Decide: PATCH (bug fix / tweak) or MINOR (new feature / UI change) or MAJOR (breaking)
-- Calculate new version number from current version
-
-**Step 2 -- Update version in source files**
-- `manifest.json`: update `"version"` field
-- `popup.html`: update footer `<span>v2.x.x</span>`
-
-**Step 3 -- Update history.md (local only)**
-- Append a new section at the end of `history.md`:
-```
-## vX.Y.Z (YYYY-MM-DD)
-
-- Summary of what changed
-- Specific files / features added or modified
-```
-
-**Step 4 -- Stage and commit**
 ```bash
 git add -A
 git commit -m "<type>(vX.Y.Z): <short description>
 
 - version: vOLD -> vNEW
-- bullet point details (max 4 more)
+- change details (max 4 lines)
 "
-```
-
-**Step 5 -- Push**
-```bash
 git push
 ```
 
-**Step 6 -- Verify**
-- Run `git status` to confirm clean working tree
-- Confirm remote is up to date
+Commit types: `feat`, `fix`, `refactor`, `style`, `docs`, `chore`
 
-**Step 7 -- Report to user**
-- Tell user the new version number and a brief summary of changes
-- Format:
+### Step 4 -- Report to user
+
 ```
-Done. Committed and pushed vX.Y.Z.
+Committed and pushed vX.Y.Z.
 
 Changes:
 - <what changed, 1-3 lines>
 ```
 
-### 13.3 Commit Message Format (Reference)
+### .gitignore
 
-```
-<type>(v2.x.x): <short description>
-
-- bullet point details (max 5)
-```
-
-**Types**: `feat`, `fix`, `refactor`, `style`, `docs`, `chore`
-
-**Rules:**
-- Include the new version number in the commit message header
-- PATCH bumps: one commit per fix is fine
-- MINOR bumps: one commit for the entire feature (squash if needed)
-- Record the version change as the first bullet point: `- version: v2.1.12 -> v2.1.13`
-
-**Examples:**
-
-```
-fix(v2.0.1): correct overdue badge not showing on first load
-
-- version: v2.0.0 -> v2.0.1
-- Fix getTodayReviews returning stale cache on extension wake
-```
-
-```
-feat(v2.1.0): add statistics tab to home modal
-
-- version: v2.0.3 -> v2.1.0
-- New "Statistics" tab with completion rate chart and review heatmap
-- Add stat rendering in content.js (Statistics Tab section)
-- Add sr-hm-stat-* styles in content.css
-- Add 8 new i18n strings
-```
-
-### 13.4 .gitignore
-
-Excludes: `.DS_Store`, editor configs, `node_modules/`, `.env`, `dist/`, `build/`, `dataset/`, `cache/`, `output/`, `results/`, `*.log`, `*.pyc`, `*.tmp`, `WLOG.md`, `leetcode-reviews-*.json` (exported backups), `*.zip`, `*.tar.gz`.
-
-### 13.5 What to Commit
-
-- All source `.js`, `.css`, `.html` files
-- `manifest.json`
-- `icons/` directory (all PNGs)
-- `images/` directory (README screenshots)
-- `README.md`, `README.zh-CN.md`
-- `.gitignore`
-- Utility scripts (`generate-icons.html`, `scripts/`)
-
-### 13.6 What NOT to Commit
-
-- User data exports (`leetcode-reviews-*.json`)
-- Build artifacts, logs, temp files
-- Environment or credential files
-- Work logs (`WLOG.md`)
+Excludes: `.DS_Store`, `.vscode/`, `node_modules/`, `.env`, `dist/`, `build/`, `cache/`, `output/`, `results/`, `*.log`, `*.tmp`, `WLOG.md`, `history.md`, `leetcode-reviews-*.json`, `*.zip`
 
 ---
 
@@ -529,5 +444,5 @@ Excludes: `.DS_Store`, editor configs, `node_modules/`, `.env`, `dist/`, `build/
 | Modify search/ranking | `content.js` AND `popup.js` (LRS_SEARCH IIFE -- both copies) |
 | Add Chrome permission | `manifest.json` (permissions or host_permissions) |
 | Change extension metadata | `manifest.json` (name, version, description) |
-| Bump version | `manifest.json` (`version`) + `popup.html` (footer `<span>`) + commit message header + append `history.md` |
+| Bump version | See Section 13 (4-step commit workflow) |
 | Update screenshots | `images/` directory + README files |
