@@ -56,10 +56,15 @@ class PopupManager {
   }
 
   localize(root) {
-    if (!globalThis.LRS_I18N || !root) return;
-    LRS_I18N.localizeElement(this.uiLanguage, root, {
-      skipSelectors: ['.problem-title', '.record-comment', '.card-last-review', '.tag']
-    });
+    if (!root) return;
+    if (globalThis.LRS_I18N) {
+      LRS_I18N.localizeElement(this.uiLanguage, root, {
+        skipSelectors: ['.problem-title', '.record-comment', '.card-last-review', '.tag']
+      });
+      if (typeof LRS_I18N.disableAutocompleteInTree === 'function') {
+        LRS_I18N.disableAutocompleteInTree(root);
+      }
+    }
   }
 
   bindEnterActivatesPrimary(overlay, primarySelector) {
@@ -75,7 +80,7 @@ class PopupManager {
       if (t.tagName === 'SELECT') return;
       if (t.tagName === 'INPUT') {
         const type = (t.type || '').toLowerCase();
-        if (type === 'radio' || type === 'checkbox') return;
+        if (type === 'checkbox') return;
         if (type === 'button' || type === 'submit' || type === 'reset') return;
       }
       const btn = t.closest && t.closest('button');
@@ -88,10 +93,51 @@ class PopupManager {
     overlay.addEventListener('keydown', handler, true);
   }
 
-  focusDialogField(overlay, selector) {
-    if (!overlay || !selector) return;
+  attachModalEnterDocumentFallback(overlay, primaryBtn) {
+    if (!overlay || !primaryBtn) return;
+    this.detachModalEnterDocumentFallback(overlay);
+    const docEnter = (e) => {
+      if (e.key !== 'Enter' || e.repeat) return;
+      if (!overlay.isConnected) {
+        this.detachModalEnterDocumentFallback(overlay);
+        return;
+      }
+      const ae = document.activeElement;
+      if (overlay.contains(ae)) return;
+      if (ae !== document.body && ae !== document.documentElement) return;
+      e.preventDefault();
+      e.stopPropagation();
+      primaryBtn.click();
+    };
+    overlay._srModalEnterDocHandler = docEnter;
+    document.addEventListener('keydown', docEnter, true);
+  }
+
+  detachModalEnterDocumentFallback(overlay) {
+    if (!overlay || !overlay._srModalEnterDocHandler) return;
+    document.removeEventListener('keydown', overlay._srModalEnterDocHandler, true);
+    overlay._srModalEnterDocHandler = null;
+  }
+
+  wireModalPrimaryEnter(overlay, primarySelector) {
+    const primaryBtn = typeof primarySelector === 'string' ? overlay.querySelector(primarySelector) : primarySelector;
+    if (!primaryBtn) return;
+    this.bindEnterActivatesPrimary(overlay, primaryBtn);
+    this.attachModalEnterDocumentFallback(overlay, primaryBtn);
+  }
+
+  focusDialogShell(overlay) {
+    const shell = overlay?.querySelector('.popup-dialog');
+    if (!shell) return;
+    shell.setAttribute('tabindex', '-1');
     requestAnimationFrame(() => {
-      overlay.querySelector(selector)?.focus();
+      requestAnimationFrame(() => {
+        try {
+          shell.focus({ preventScroll: true });
+        } catch (err) {
+          shell.focus();
+        }
+      });
     });
   }
 
@@ -528,8 +574,8 @@ class PopupManager {
 
     document.body.appendChild(overlay);
     this.localize(overlay);
-    this.bindEnterActivatesPrimary(overlay, '#dialog-confirm');
-    this.focusDialogField(overlay, '#dialog-time');
+    this.wireModalPrimaryEnter(overlay, '#dialog-confirm');
+    this.focusDialogShell(overlay);
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeDialog(); });
     document.getElementById('dialog-close').addEventListener('click', () => this.removeDialog());
@@ -646,7 +692,7 @@ class PopupManager {
 
     document.body.appendChild(overlay);
     this.localize(overlay);
-    this.bindEnterActivatesPrimary(overlay, '#dialog-close-btn');
+    this.wireModalPrimaryEnter(overlay, '#dialog-close-btn');
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeDialog(); });
     document.getElementById('dialog-close').addEventListener('click', () => this.removeDialog());
@@ -655,7 +701,10 @@ class PopupManager {
 
   removeDialog() {
     const el = document.getElementById('popup-dialog');
-    if (el) el.remove();
+    if (el) {
+      this.detachModalEnterDocumentFallback(el);
+      el.remove();
+    }
   }
 
   // ============ 复习间隔方案（可编辑） ============

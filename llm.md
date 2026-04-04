@@ -401,8 +401,50 @@ Format: `v<MAJOR>.<MINOR>.<PATCH>`
 |----------|-------|
 | `manifest.json` | `"version"` |
 | `popup.html` | Footer `<span>v2.x</span>` |
+| `history.md` | Append new version section (local only, not in git) |
 
-### 13.2 Commit Message Format
+### 13.2 Commit Workflow (Step by Step)
+
+When user says "commit" or "push to GitHub", follow these steps in order:
+
+**Step 1 -- Determine version bump**
+- Review all changes since last commit
+- Decide: PATCH (bug fix / tweak) or MINOR (new feature / UI change) or MAJOR (breaking)
+- Calculate new version number from current version
+
+**Step 2 -- Update version in source files**
+- `manifest.json`: update `"version"` field
+- `popup.html`: update footer `<span>v2.x.x</span>`
+
+**Step 3 -- Update history.md (local only)**
+- Append a new section at the end of `history.md`:
+```
+## vX.Y.Z (YYYY-MM-DD)
+
+- Summary of what changed
+- Specific files / features added or modified
+```
+
+**Step 4 -- Stage and commit**
+```bash
+git add -A
+git commit -m "<type>(vX.Y.Z): <short description>
+
+- version: vOLD -> vNEW
+- bullet point details (max 4 more)
+"
+```
+
+**Step 5 -- Push**
+```bash
+git push
+```
+
+**Step 6 -- Verify**
+- Run `git status` to confirm clean working tree
+- Confirm remote is up to date
+
+### 13.3 Commit Message Format (Reference)
 
 ```
 <type>(v2.x.x): <short description>
@@ -437,11 +479,11 @@ feat(v2.1.0): add statistics tab to home modal
 - Add 8 new i18n strings
 ```
 
-### 13.3 .gitignore
+### 13.4 .gitignore
 
 Excludes: `.DS_Store`, editor configs, `node_modules/`, `.env`, `dist/`, `build/`, `dataset/`, `cache/`, `output/`, `results/`, `*.log`, `*.pyc`, `*.tmp`, `WLOG.md`, `leetcode-reviews-*.json` (exported backups), `*.zip`, `*.tar.gz`.
 
-### 13.4 What to Commit
+### 13.5 What to Commit
 
 - All source `.js`, `.css`, `.html` files
 - `manifest.json`
@@ -451,7 +493,7 @@ Excludes: `.DS_Store`, editor configs, `node_modules/`, `.env`, `dist/`, `build/
 - `.gitignore`
 - Utility scripts (`generate-icons.html`, `scripts/`)
 
-### 13.5 What NOT to Commit
+### 13.6 What NOT to Commit
 
 - User data exports (`leetcode-reviews-*.json`)
 - Build artifacts, logs, temp files
@@ -477,5 +519,5 @@ Excludes: `.DS_Store`, editor configs, `node_modules/`, `.env`, `dist/`, `build/
 | Modify search/ranking | `content.js` AND `popup.js` (LRS_SEARCH IIFE -- both copies) |
 | Add Chrome permission | `manifest.json` (permissions or host_permissions) |
 | Change extension metadata | `manifest.json` (name, version, description) |
-| Bump version | `manifest.json` (`version`) + `popup.html` (footer `<span>`) + commit message header |
+| Bump version | `manifest.json` (`version`) + `popup.html` (footer `<span>`) + commit message header + append `history.md` |
 | Update screenshots | `images/` directory + README files |

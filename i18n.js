@@ -373,6 +373,16 @@
     });
   }
 
+  /** Stops Chrome/Safari autofill dropdowns from covering extension modals (time/notes fields). */
+  function disableAutocompleteInTree(root) {
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll('input, textarea').forEach(el => {
+      const t = (el.type || '').toLowerCase();
+      if (t === 'hidden' || t === 'radio' || t === 'checkbox' || t === 'button' || t === 'submit' || t === 'reset' || t === 'file') return;
+      el.setAttribute('autocomplete', 'off');
+    });
+  }
+
   globalThis.LRS_I18N = {
     STORAGE_KEY,
     DEFAULT_LANGUAGE,
@@ -381,6 +391,7 @@
     setLanguage,
     t: (lang, key) => translateText(lang, key),
     translateText,
-    localizeElement
+    localizeElement,
+    disableAutocompleteInTree
   };
 })();

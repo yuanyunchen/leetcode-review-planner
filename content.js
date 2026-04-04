@@ -115,21 +115,26 @@ class LeetCodeHelper {
   }
 
   localize(root) {
-    if (!globalThis.LRS_I18N || !root) return;
-    LRS_I18N.localizeElement(this.uiLanguage, root, {
-      skipSelectors: [
-        '.sr-problem-name',
-        '.problem-title',
-        '.sr-hm-card-title',
-        '.sr-hm-overdue-title',
-        '.sr-today-title',
-        '.sr-history-comment',
-        '.record-comment',
-        '.card-last-review',
-        '.tag',
-        '.sr-hm-card-tag'
-      ]
-    });
+    if (!root) return;
+    if (globalThis.LRS_I18N) {
+      LRS_I18N.localizeElement(this.uiLanguage, root, {
+        skipSelectors: [
+          '.sr-problem-name',
+          '.problem-title',
+          '.sr-hm-card-title',
+          '.sr-hm-overdue-title',
+          '.sr-today-title',
+          '.sr-history-comment',
+          '.record-comment',
+          '.card-last-review',
+          '.tag',
+          '.sr-hm-card-tag'
+        ]
+      });
+      if (typeof LRS_I18N.disableAutocompleteInTree === 'function') {
+        LRS_I18N.disableAutocompleteInTree(root);
+      }
+    }
   }
 
   /**
@@ -149,7 +154,7 @@ class LeetCodeHelper {
       if (t.tagName === 'SELECT') return;
       if (t.tagName === 'INPUT') {
         const type = (t.type || '').toLowerCase();
-        if (type === 'radio' || type === 'checkbox') return;
+        if (type === 'checkbox') return;
         if (type === 'button' || type === 'submit' || type === 'reset') return;
       }
       const btn = t.closest && t.closest('button');
@@ -160,6 +165,55 @@ class LeetCodeHelper {
       primaryBtn.click();
     };
     overlay.addEventListener('keydown', handler, true);
+  }
+
+  /** When focus stays on document.body (LeetCode), Enter still triggers primary. */
+  attachModalEnterDocumentFallback(overlay, primaryBtn) {
+    if (!overlay || !primaryBtn) return;
+    this.detachModalEnterDocumentFallback(overlay);
+    const docEnter = (e) => {
+      if (e.key !== 'Enter' || e.repeat) return;
+      if (!overlay.isConnected) {
+        this.detachModalEnterDocumentFallback(overlay);
+        return;
+      }
+      const ae = document.activeElement;
+      if (overlay.contains(ae)) return;
+      if (ae !== document.body && ae !== document.documentElement) return;
+      e.preventDefault();
+      e.stopPropagation();
+      primaryBtn.click();
+    };
+    overlay._srModalEnterDocHandler = docEnter;
+    document.addEventListener('keydown', docEnter, true);
+  }
+
+  detachModalEnterDocumentFallback(overlay) {
+    if (!overlay || !overlay._srModalEnterDocHandler) return;
+    document.removeEventListener('keydown', overlay._srModalEnterDocHandler, true);
+    overlay._srModalEnterDocHandler = null;
+  }
+
+  wireModalPrimaryEnter(overlay, primarySelector) {
+    const primaryBtn = typeof primarySelector === 'string' ? overlay.querySelector(primarySelector) : primarySelector;
+    if (!primaryBtn) return;
+    this.bindEnterActivatesPrimary(overlay, primaryBtn);
+    this.attachModalEnterDocumentFallback(overlay, primaryBtn);
+  }
+
+  /** Focus modal shell only (no input focused). */
+  focusModalContainer(modalRoot) {
+    if (!modalRoot) return;
+    modalRoot.setAttribute('tabindex', '-1');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        try {
+          modalRoot.focus({ preventScroll: true });
+        } catch (err) {
+          modalRoot.focus();
+        }
+      });
+    });
   }
 
   /** Move focus into the modal so Enter handling runs reliably on LeetCode (host page often keeps focus). */
@@ -173,13 +227,15 @@ class LeetCodeHelper {
   _shouldSkipPlanArrowNav(target) {
     if (!target || target.nodeType !== 1) return true;
     if (target.closest('.leetcode-sr-modal-footer') || target.closest('.leetcode-sr-modal-close')) return true;
-    if (target.tagName === 'TEXTAREA') return true;
+    if (target.id === 'sr-custom-intervals' || target.id === 'sr-readd-custom-intervals') return true;
     if (target.tagName === 'SELECT') return true;
     if (target.isContentEditable) return true;
+    if (target.tagName === 'TEXTAREA') return false;
     if (target.tagName === 'INPUT') {
       const t = (target.type || '').toLowerCase();
       if (t === 'radio') return false;
-      return true;
+      if (t === 'checkbox' || t === 'button' || t === 'submit' || t === 'reset' || t === 'hidden') return true;
+      return false;
     }
     return false;
   }
@@ -203,13 +259,31 @@ class LeetCodeHelper {
       else idx = (idx - 1 + radios.length) % radios.length;
       const r = radios[idx];
       r.checked = true;
-      r.focus();
+      const prevActive = document.activeElement;
+      const ty = prevActive && prevActive.tagName === 'INPUT' ? (prevActive.type || '').toLowerCase() : '';
+      const textLike =
+        prevActive &&
+        overlay.contains(prevActive) &&
+        (prevActive.tagName === 'TEXTAREA' ||
+          (prevActive.tagName === 'INPUT' &&
+            (ty === 'text' || ty === 'search' || ty === '' || ty === 'tel' || ty === 'url') &&
+            prevActive.id !== 'sr-custom-intervals' &&
+            prevActive.id !== 'sr-readd-custom-intervals'));
       modal.querySelectorAll('.leetcode-sr-plan-option').forEach(o => o.classList.remove('selected'));
       const label = r.closest('.leetcode-sr-plan-option');
       if (label) label.classList.add('selected');
       if (customWrapId) {
         const wrap = modal.querySelector(`#${customWrapId}`);
         if (wrap) wrap.classList.toggle('hidden', r.value !== 'custom');
+      }
+      if (textLike) {
+        try {
+          prevActive.focus({ preventScroll: true });
+        } catch (err) {
+          prevActive.focus();
+        }
+      } else {
+        r.focus();
       }
     };
     overlay.addEventListener('keydown', handler, true);
@@ -1673,7 +1747,10 @@ class LeetCodeHelper {
   showHomeSubmitDialog(slug) {
     // Remove existing sub-dialog
     const old = document.getElementById('sr-home-sub-dialog');
-    if (old) old.remove();
+    if (old) {
+      this.detachModalEnterDocumentFallback(old);
+      old.remove();
+    }
 
     const overlay = document.createElement('div');
     overlay.id = 'sr-home-sub-dialog';
@@ -1702,12 +1779,17 @@ class LeetCodeHelper {
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
     this.localize(dialog);
-    this.bindEnterActivatesPrimary(overlay, '#sr-sub-confirm');
-    this.focusModalField(dialog, '#sr-sub-time');
+    this.wireModalPrimaryEnter(overlay, '#sr-sub-confirm');
+    this.focusModalContainer(dialog);
 
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-    dialog.querySelector('#sr-sub-close').addEventListener('click', () => overlay.remove());
-    dialog.querySelector('#sr-sub-cancel').addEventListener('click', () => overlay.remove());
+    const closeSubOverlay = () => {
+      this.detachModalEnterDocumentFallback(overlay);
+      overlay.remove();
+    };
+
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeSubOverlay(); });
+    dialog.querySelector('#sr-sub-close').addEventListener('click', closeSubOverlay);
+    dialog.querySelector('#sr-sub-cancel').addEventListener('click', closeSubOverlay);
     dialog.querySelector('#sr-sub-confirm').addEventListener('click', async () => {
       const time = document.getElementById('sr-sub-time').value.trim();
       const comment = document.getElementById('sr-sub-comment').value.trim();
@@ -1715,7 +1797,7 @@ class LeetCodeHelper {
         action: 'markReviewed', slug,
         time: time || null, comment: comment || null
       });
-      overlay.remove();
+      closeSubOverlay();
       if (resp && resp.success && resp.counted === false) {
         this.showNotification('ℹ️ 未到计划日期，仅记录笔记', 'info');
       } else {
@@ -2003,7 +2085,7 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
-    this.bindEnterActivatesPrimary(overlay, '#sr-modal-confirm');
+    this.wireModalPrimaryEnter(overlay, '#sr-modal-confirm');
     this.focusModalField(modal, '#sr-custom-title');
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
@@ -2078,8 +2160,8 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
-    this.bindEnterActivatesPrimary(overlay, '#sr-modal-confirm');
-    this.focusModalField(modal, '#sr-add-time');
+    this.wireModalPrimaryEnter(overlay, '#sr-modal-confirm');
+    this.focusModalContainer(modal);
     this.bindPlanArrowKeys(overlay, modal, 'sr-plan', 'sr-add-custom-wrap');
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
@@ -2133,7 +2215,7 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
-    this.bindEnterActivatesPrimary(overlay, '#sr-modal-confirm');
+    this.wireModalPrimaryEnter(overlay, '#sr-modal-confirm');
     this.focusModalField(modal, '#sr-custom-title');
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
@@ -2263,8 +2345,8 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
-    this.bindEnterActivatesPrimary(overlay, '#sr-modal-confirm');
-    this.focusModalField(modal, '#sr-add-time');
+    this.wireModalPrimaryEnter(overlay, '#sr-modal-confirm');
+    this.focusModalContainer(modal);
     this.bindPlanArrowKeys(overlay, modal, 'sr-plan', 'sr-add-custom-wrap');
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
@@ -2375,8 +2457,8 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
-    this.bindEnterActivatesPrimary(overlay, '#sr-modal-confirm');
-    this.focusModalField(modal, '#sr-review-time');
+    this.wireModalPrimaryEnter(overlay, '#sr-modal-confirm');
+    this.focusModalContainer(modal);
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
     modal.querySelector('#sr-modal-close').addEventListener('click', () => this.removeModal());
@@ -2445,8 +2527,8 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
-    this.bindEnterActivatesPrimary(overlay, '#sr-modal-confirm');
-    this.focusModalField(modal, '#sr-review-time');
+    this.wireModalPrimaryEnter(overlay, '#sr-modal-confirm');
+    this.focusModalContainer(modal);
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
     modal.querySelector('#sr-modal-close').addEventListener('click', () => this.removeModal());
@@ -2657,6 +2739,19 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
+    const submitReviewBtn = modal.querySelector('#sr-submit-review');
+    this.wireModalPrimaryEnter(overlay, submitReviewBtn);
+
+    modal.setAttribute('tabindex', '-1');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        try {
+          modal.focus({ preventScroll: true });
+        } catch (err) {
+          modal.focus();
+        }
+      });
+    });
 
     overlay.addEventListener('click', (e) => { if (e.target === overlay) this.removeModal(); });
     modal.querySelector('#sr-modal-home').addEventListener('click', () => {
@@ -2777,7 +2872,7 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
-    this.bindEnterActivatesPrimary(overlay, '#sr-extra-confirm');
+    this.wireModalPrimaryEnter(overlay, '#sr-extra-confirm');
     this.focusModalField(modal, '#sr-extra-days');
 
     const closeDialog = () => {
@@ -2856,7 +2951,7 @@ class LeetCodeHelper {
     document.body.appendChild(overlay);
     this.modalOverlay = overlay;
     this.localize(overlay);
-    this.bindEnterActivatesPrimary(overlay, '#sr-readd-confirm');
+    this.wireModalPrimaryEnter(overlay, '#sr-readd-confirm');
     this.focusModalField(modal, 'input[name="sr-readd-plan"]');
     this.bindPlanArrowKeys(overlay, modal, 'sr-readd-plan', 'sr-readd-custom-wrap');
 
@@ -2904,7 +2999,10 @@ class LeetCodeHelper {
 
   removeModal() {
     const existing = document.getElementById('leetcode-sr-modal-overlay');
-    if (existing) existing.remove();
+    if (existing) {
+      this.detachModalEnterDocumentFallback(existing);
+      existing.remove();
+    }
     this.modalOverlay = null;
   }
 
