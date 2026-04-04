@@ -444,6 +444,16 @@ git push
 - Run `git status` to confirm clean working tree
 - Confirm remote is up to date
 
+**Step 7 -- Report to user**
+- Tell user the new version number and a brief summary of changes
+- Format:
+```
+Done. Committed and pushed vX.Y.Z.
+
+Changes:
+- <what changed, 1-3 lines>
+```
+
 ### 13.3 Commit Message Format (Reference)
 
 ```
