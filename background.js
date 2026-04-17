@@ -484,41 +484,45 @@ class SpacedRepetitionManager {
     const storageResult = await chrome.storage.local.get('problems');
     const problemsMap = storageResult.problems || {};
 
-    if (problemsMap[slug]) {
-      const problem = problemsMap[slug];
-      if (!Number.isInteger(days) || days < 0) {
-        return { success: false, error: '请输入有效天数' };
-      }
-      const now = Date.now();
-      const d = new Date();
-      d.setDate(d.getDate() + days);
-      d.setHours(20, 0, 0, 0);
-
-      // 插入到正确位置（按时间排序）
-      problem.reviewDates.push(d.getTime());
-      problem.reviewDates.sort((a, b) => a - b);
-
-      if (!problem.intervals) problem.intervals = [];
-      problem.intervals.push(days);
-      problem.intervals.sort((a, b) => a - b);
-
-      // 记录 Add Review 历史（快照写入后不再变化）
-      if (!Array.isArray(problem.addHistory)) {
-        problem.addHistory = [];
-      }
-      problem.addHistory.push({
-        timestamp: now,
-        type: 'addExtra',
-        planType: problem.planType || 'custom',
-        intervals: [...problem.intervals],
-        extraDays: days,
-        planBaseAt: problem.planBaseAt || this.getStartOfDayTs(problem.addedAt || now)
-      });
-
-      await chrome.storage.local.set({ problems: problemsMap });
-      return { success: true };
+    if (!problemsMap[slug]) {
+      return { success: false, error: '题目不存在' };
     }
-    return { success: false, error: '题目不存在' };
+
+    const rawList = Array.isArray(days) ? days : [days];
+    const valid = rawList.filter(d => Number.isInteger(d) && d >= 0);
+    if (valid.length === 0) {
+      return { success: false, error: '请输入有效天数' };
+    }
+    const uniqueSorted = [...new Set(valid)].sort((a, b) => a - b);
+
+    const problem = problemsMap[slug];
+    const now = Date.now();
+
+    for (const dayOffset of uniqueSorted) {
+      const d = new Date();
+      d.setDate(d.getDate() + dayOffset);
+      d.setHours(20, 0, 0, 0);
+      problem.reviewDates.push(d.getTime());
+      if (!problem.intervals) problem.intervals = [];
+      problem.intervals.push(dayOffset);
+    }
+    problem.reviewDates.sort((a, b) => a - b);
+    problem.intervals.sort((a, b) => a - b);
+
+    if (!Array.isArray(problem.addHistory)) {
+      problem.addHistory = [];
+    }
+    problem.addHistory.push({
+      timestamp: now,
+      type: 'addExtra',
+      planType: problem.planType || 'custom',
+      intervals: [...problem.intervals],
+      extraDays: uniqueSorted.length === 1 ? uniqueSorted[0] : uniqueSorted,
+      planBaseAt: problem.planBaseAt || this.getStartOfDayTs(problem.addedAt || now)
+    });
+
+    await chrome.storage.local.set({ problems: problemsMap });
+    return { success: true };
   }
 
   async removeReviewDate(slug, index) {

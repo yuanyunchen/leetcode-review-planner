@@ -81,7 +81,7 @@ Use built-in JSON export/import for backup and migration across versions.
 
 ## Version
 
-`v2.0` · Made by Kenzie & Ethan
+`v2.2` · Made by Ethan
 
 If this helps your interview prep, a ⭐ is appreciated.
 

@@ -65,5 +65,5 @@
 
 ## 版本
 
-`v2.0` · Made by Kenzie & Ethan
+`v2.2` · Made by Ethan
 如果这个项目对你有帮助，欢迎点个 Star

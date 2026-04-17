@@ -19,6 +19,9 @@ class LeetCodeHelper {
     this.homeSearchQuery = '';
     this.homeActiveTag = null;
     this.homeTagListExpanded = false;
+    /** Space then Enter triggers the same primary action as the floating main button (was Cmd/Ctrl+Enter). */
+    this._srSpaceEnterArmed = false;
+    this._srSpaceEnterArmTimer = null;
     this.init();
   }
 
@@ -199,6 +202,218 @@ class LeetCodeHelper {
     if (!primaryBtn) return;
     this.bindEnterActivatesPrimary(overlay, primaryBtn);
     this.attachModalEnterDocumentFallback(overlay, primaryBtn);
+  }
+
+  // ============ Global Keyboard Shortcuts (LeetCode page) ============
+  /** True when focus is in the page code editor (Monaco/CodeMirror), not in our UI. */
+  _isFocusInHostCodeEditor(el) {
+    if (!el || el.nodeType !== 1) return false;
+    if (el.closest && el.closest('#leetcode-sr-container, .leetcode-sr-overlay, #sr-home-overlay, #sr-home-sub-dialog')) {
+      return false;
+    }
+    if (el.closest && el.closest('.monaco-editor, .monaco-mouse-cursor-text, .inputarea, .cm-editor, .cm-content, [data-cm-editor]')) {
+      return true;
+    }
+    return false;
+  }
+
+  /** Home modal, nested submit dialog, or problem modal is open. */
+  _hasBlockingExtensionOverlay() {
+    const h = document.getElementById('sr-home-overlay');
+    const sub = document.getElementById('sr-home-sub-dialog');
+    if (h && h.isConnected) return true;
+    if (sub && sub.isConnected) return true;
+    if (this.modalOverlay && this.modalOverlay.isConnected) return true;
+    return false;
+  }
+
+  _getExtensionPrimaryConfirmButton() {
+    const sub = document.getElementById('sr-home-sub-dialog');
+    if (sub && sub.isConnected) {
+      const b = sub.querySelector('#sr-sub-confirm');
+      if (b) return b;
+    }
+    const overlay = this.modalOverlay;
+    if (!overlay || !overlay.isConnected) return null;
+    return overlay.querySelector('#sr-modal-confirm')
+      || overlay.querySelector('#sr-submit-review')
+      || overlay.querySelector('#sr-extra-confirm')
+      || overlay.querySelector('#sr-readd-confirm');
+  }
+
+  _clearSpaceEnterArm() {
+    if (this._srSpaceEnterArmTimer) {
+      clearTimeout(this._srSpaceEnterArmTimer);
+      this._srSpaceEnterArmTimer = null;
+    }
+    this._srSpaceEnterArmed = false;
+  }
+
+  /**
+   * Space may arm the Space+Enter chord only when a confirm action is possible (extension primary or floating main on problem page).
+   */
+  _canArmSpaceEnterChord() {
+    if (this._isFocusInHostCodeEditor(document.activeElement)) return false;
+    const ae = document.activeElement;
+    if (ae) {
+      if (ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT') return false;
+      if (ae.isContentEditable) return false;
+      if (ae.tagName === 'INPUT') {
+        const type = (ae.type || '').toLowerCase();
+        if (!['button', 'submit', 'reset', 'radio', 'checkbox'].includes(type)) return false;
+      }
+    }
+    if (this._getExtensionPrimaryConfirmButton()) return true;
+    if (this._shouldTriggerMainFloatingShortcut() && this.isOnProblemPage()) return true;
+    return false;
+  }
+
+  _armSpaceEnterChord() {
+    this._srSpaceEnterArmed = true;
+    if (this._srSpaceEnterArmTimer) clearTimeout(this._srSpaceEnterArmTimer);
+    this._srSpaceEnterArmTimer = setTimeout(() => {
+      this._srSpaceEnterArmTimer = null;
+      this._srSpaceEnterArmed = false;
+    }, 2500);
+  }
+
+  /** Whether the floating main action (加入/提交) may run without a modal (not used when a primary confirm exists). */
+  _shouldTriggerMainFloatingShortcut() {
+    const ae = document.activeElement;
+    if (!ae) return true;
+    if (ae === document.body || ae === document.documentElement) return true;
+    if (ae.closest && ae.closest('#leetcode-sr-container')) return true;
+    if (this._isFocusInHostCodeEditor(ae)) return false;
+    if (ae.closest && ae.closest('.leetcode-sr-overlay, #sr-home-overlay, #sr-home-sub-dialog')) return false;
+    const tag = ae.tagName;
+    if (tag === 'TEXTAREA' || tag === 'SELECT') return false;
+    if (tag === 'INPUT') {
+      const type = (ae.type || '').toLowerCase();
+      if (!['button', 'submit', 'reset', 'radio', 'checkbox'].includes(type)) return false;
+    }
+    if (ae.isContentEditable) return false;
+    return true;
+  }
+
+  async keyboardExpandOrCollapseWidgetAndToday() {
+    if (this._hasBlockingExtensionOverlay()) return;
+    if (this.isCollapsed) {
+      this.isCollapsed = false;
+      const collapsible = document.getElementById('leetcode-sr-collapsible');
+      if (collapsible) collapsible.style.display = '';
+      this.saveCollapsedState();
+      if (!this.todayPanelOpen) await this.toggleTodayPanel();
+      return;
+    }
+    this.toggleCollapse();
+  }
+
+  /**
+   * Esc: dismiss innermost extension UI (sub-dialog → problem modal → home settings → home → today panel → collapse widget).
+   * Does not run when focus is in the host code editor so Esc keeps working there.
+   */
+  keyboardEscapeTopLayer(e) {
+    if (this._isFocusInHostCodeEditor(document.activeElement)) return false;
+
+    const sub = document.getElementById('sr-home-sub-dialog');
+    if (sub && sub.isConnected) {
+      this.detachModalEnterDocumentFallback(sub);
+      sub.remove();
+      e.preventDefault();
+      e.stopPropagation();
+      return true;
+    }
+
+    const probModal = document.getElementById('leetcode-sr-modal-overlay');
+    if (probModal && probModal.isConnected) {
+      this.removeModal();
+      e.preventDefault();
+      e.stopPropagation();
+      return true;
+    }
+
+    const home = document.getElementById('sr-home-overlay');
+    if (home && home.isConnected) {
+      if (document.getElementById('sr-settings-view')) {
+        this.hideSettingsView();
+        e.preventDefault();
+        e.stopPropagation();
+        return true;
+      }
+      this.closeHomeModal();
+      e.preventDefault();
+      e.stopPropagation();
+      return true;
+    }
+
+    if (this.todayPanelOpen) {
+      this.closeTodayPanel();
+      e.preventDefault();
+      e.stopPropagation();
+      return true;
+    }
+
+    if (!this.isCollapsed) {
+      this.toggleCollapse();
+      e.preventDefault();
+      e.stopPropagation();
+      return true;
+    }
+
+    return false;
+  }
+
+  setupGlobalKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this._clearSpaceEnterArm();
+        this.keyboardEscapeTopLayer(e);
+        return;
+      }
+
+      if (e.key === 'Enter' && e.shiftKey && (e.metaKey || e.ctrlKey) && !e.altKey) {
+        this._clearSpaceEnterArm();
+        if (e.repeat) return;
+        if (this._hasBlockingExtensionOverlay()) return;
+        if (this._isFocusInHostCodeEditor(document.activeElement)) return;
+        if (!this._shouldTriggerMainFloatingShortcut()) return;
+        e.preventDefault();
+        e.stopPropagation();
+        void this.keyboardExpandOrCollapseWidgetAndToday();
+        return;
+      }
+
+      if (e.key === 'Enter' && !e.shiftKey && this._srSpaceEnterArmed) {
+        this._clearSpaceEnterArm();
+        if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+        if (this._isFocusInHostCodeEditor(document.activeElement)) return;
+
+        const primary = this._getExtensionPrimaryConfirmButton();
+        if (primary) {
+          e.preventDefault();
+          e.stopPropagation();
+          primary.click();
+          return;
+        }
+
+        if (!this._shouldTriggerMainFloatingShortcut()) return;
+        if (!this.isOnProblemPage()) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleMainButtonClick();
+        return;
+      }
+
+      if (e.code === 'Space' || e.key === ' ') {
+        if (e.repeat) return;
+        if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+        if (!this._canArmSpaceEnterChord()) return;
+        e.preventDefault();
+        e.stopPropagation();
+        this._armSpaceEnterChord();
+      }
+    }, true);
   }
 
   /** Focus modal shell only (no input focused). */
@@ -623,6 +838,7 @@ class LeetCodeHelper {
 
     this.isCollapsed = true;
     collapsible.style.display = 'none';
+    this.setupGlobalKeyboardShortcuts();
   }
 
   loadCollapsedState() {
@@ -869,6 +1085,46 @@ class LeetCodeHelper {
     this.todayPanelOpen = false;
   }
 
+  buildProblemOpenUrl(problem) {
+    if (!problem || problem.isCustom) return null;
+    if (problem.url && /^https?:\/\//.test(String(problem.url))) return problem.url;
+    const slug = problem.slug;
+    if (!slug) return null;
+    const onCn = window.location.hostname.includes('leetcode.cn') || problem.site === 'leetcode.cn';
+    const host = onCn ? 'https://leetcode.cn' : 'https://leetcode.com';
+    return `${host}/problems/${encodeURIComponent(slug)}/`;
+  }
+
+  async openAllTodayProblemTabs(reviews) {
+    const list = Array.isArray(reviews) ? reviews : [];
+    const seen = new Set();
+    const urls = [];
+    for (const p of list) {
+      const u = this.buildProblemOpenUrl(p);
+      if (u && !seen.has(u)) {
+        seen.add(u);
+        urls.push(u);
+      }
+    }
+    if (urls.length === 0) {
+      this.showNotification(this.tr('没有可在浏览器打开的题面链接'), 'info');
+      return;
+    }
+    if (!chrome.tabs || !chrome.tabs.create) {
+      for (const u of urls) {
+        window.open(u, '_blank', 'noopener,noreferrer');
+      }
+      return;
+    }
+    for (const u of urls) {
+      try {
+        await chrome.tabs.create({ url: u, active: false });
+      } catch (err) {
+        console.warn('tabs.create failed', err);
+      }
+    }
+  }
+
   async toggleTodayPanel() {
     if (this.isDragging) return;
     const panel = document.getElementById('leetcode-sr-today-panel');
@@ -899,8 +1155,10 @@ class LeetCodeHelper {
       if (reviews.length === 0) {
         panel.innerHTML = `
           <div class="sr-today-header">
-            <span>${this.tr('📋 当日复习')}</span>
-            <button class="sr-today-close" id="sr-today-close">✕</button>
+            <span class="sr-today-header-title">${this.tr('📋 当日复习')}</span>
+            <div class="sr-today-header-actions">
+              <button type="button" class="sr-today-close" id="sr-today-close">✕</button>
+            </div>
           </div>
           <div class="sr-today-empty">
             <div class="sr-today-done-icon">🎉</div>
@@ -937,8 +1195,11 @@ class LeetCodeHelper {
         }).join('');
         panel.innerHTML = `
           <div class="sr-today-header">
-            <span>${this.trText(`📋 当日复习 (${reviews.length})`)}</span>
-            <button class="sr-today-close" id="sr-today-close">✕</button>
+            <span class="sr-today-header-title">${this.trText(`📋 当日复习 (${reviews.length})`)}</span>
+            <div class="sr-today-header-actions">
+              <button type="button" class="sr-today-open-all" id="sr-today-open-all" title="${this._escapeHtml(this.tr('在新标签页打开当日全部题面'))}">${this.tr('全部打开')}</button>
+              <button type="button" class="sr-today-close" id="sr-today-close">✕</button>
+            </div>
           </div>
           <div class="sr-today-list">${itemsHtml}</div>
         `;
@@ -946,6 +1207,14 @@ class LeetCodeHelper {
 
       const closeBtn = panel.querySelector('#sr-today-close');
       if (closeBtn) closeBtn.addEventListener('click', (e) => { e.stopPropagation(); this.closeTodayPanel(); });
+
+      const openAllBtn = panel.querySelector('#sr-today-open-all');
+      if (openAllBtn) {
+        openAllBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          void this.openAllTodayProblemTabs(reviews);
+        });
+      }
 
       panel.querySelectorAll('.sr-today-item').forEach(item => {
         item.addEventListener('click', () => {
@@ -1016,7 +1285,7 @@ class LeetCodeHelper {
       <div class="sr-hm-content" id="sr-hm-content"></div>
 
       <div class="sr-hm-footer" id="sr-hm-footer">
-        <span class="sr-hm-version">v2.0 · Made by Kenzie & Ethan</span>
+        <span class="sr-hm-version">v2.0 · Made by Ethan</span>
         <button class="sr-hm-settings-btn" id="sr-hm-settings" title="设置">⚙️</button>
       </div>
     `;
@@ -2141,8 +2410,7 @@ class LeetCodeHelper {
           </label>
         </div>
         <div class="sr-plan-custom-wrap hidden" id="sr-add-custom-wrap">
-          <input type="text" id="sr-custom-intervals" placeholder="自定义间隔（如: 0,3,10,30 或 0 3 10 30）" class="sr-text-input">
-          <div class="sr-plan-custom-hint">支持空格、逗号、分号</div>
+          <input type="text" id="sr-custom-intervals" placeholder="${this.tr('eg. 0 3 10 30')}" class="sr-text-input">
         </div>
         <div class="sr-section-title" style="margin-top:16px">${this.tr('添加笔记')} <span style="font-weight:400;color:#9ca3af;font-size:12px">${this.tr('（可选）')}</span></div>
         <div class="sr-note-form-compact">
@@ -2326,8 +2594,7 @@ class LeetCodeHelper {
           </label>
         </div>
         <div class="sr-plan-custom-wrap hidden" id="sr-add-custom-wrap">
-          <input type="text" id="sr-custom-intervals" placeholder="自定义间隔（如: 0,3,10,30 或 0 3 10 30）" class="sr-text-input">
-          <div class="sr-plan-custom-hint">支持空格、逗号、分号</div>
+          <input type="text" id="sr-custom-intervals" placeholder="${this.tr('eg. 0 3 10 30')}" class="sr-text-input">
         </div>
         <div class="sr-section-title" style="margin-top:16px">添加笔记 <span style="font-weight:400;color:#9ca3af;font-size:12px">（可选）</span></div>
         <div class="sr-note-form-compact">
@@ -2587,7 +2854,16 @@ class LeetCodeHelper {
         : (h.planType === 'half' ? this.tr('⚡ 精简') : this.tr('🧪 自定义'));
       const intervalsLabel = Array.isArray(h.intervals) && h.intervals.length > 0 ? h.intervals.join(' / ') : '-';
       const title = h.type === 'readd' ? 'Re-add Review' : 'Add Review';
-      const addExtraLabel = Number.isInteger(h.extraDays) ? this.trText(`第${h.extraDays}天`) : '';
+      const addExtraLabel = (() => {
+        const ed = h.extraDays;
+        if (Array.isArray(ed) && ed.length > 0) {
+          return ed.map(d => this.trText(`第${d}天`)).join(' · ');
+        }
+        if (Number.isInteger(ed)) {
+          return this.trText(`第${ed}天`);
+        }
+        return '';
+      })();
       const lineText = addExtraLabel || `${planLabel} · ${intervalsLabel}`;
       mergedHistory.push({
         timestamp: h.timestamp,
@@ -2859,8 +3135,7 @@ class LeetCodeHelper {
         <button class="leetcode-sr-modal-close" id="sr-modal-close">&times;</button>
       </div>
       <div class="leetcode-sr-modal-body">
-        <p style="color:#6b7280;font-size:14px;margin-bottom:14px;">输入天数，将在对应天后安排一次复习。</p>
-        <input type="number" id="sr-extra-days" placeholder="天数（如: 0）" class="sr-text-input" min="0" style="font-size:15px;padding:11px 14px;">
+        <input type="text" id="sr-extra-days" placeholder="${this.tr('eg. 30 60 90')}" class="sr-text-input" style="font-size:15px;padding:11px 14px;">
       </div>
       <div class="leetcode-sr-modal-footer">
         <button class="sr-btn-cancel" id="sr-modal-cancel">取消</button>
@@ -2885,12 +3160,13 @@ class LeetCodeHelper {
     modal.querySelector('#sr-modal-cancel').addEventListener('click', closeDialog);
 
     modal.querySelector('#sr-extra-confirm').addEventListener('click', async () => {
-      const days = parseInt(document.getElementById('sr-extra-days').value);
-      if (!Number.isInteger(days) || days < 0) {
+      const raw = document.getElementById('sr-extra-days')?.value || '';
+      const daysList = this.parseCustomIntervals(raw);
+      if (daysList.length === 0) {
         this.showNotification('请输入有效天数', 'info');
         return;
       }
-      await this.safeSendMessage({ action: 'addExtraReview', slug, days });
+      await this.safeSendMessage({ action: 'addExtraReview', slug, days: daysList });
       this.showNotification('✅ 已添加复习计划', 'success');
       this.removeModal();
       this.showProblemDetailModal(slug);
@@ -2937,8 +3213,7 @@ class LeetCodeHelper {
           </label>
         </div>
         <div class="sr-plan-custom-wrap hidden" id="sr-readd-custom-wrap">
-          <input type="text" id="sr-readd-custom-intervals" placeholder="自定义间隔（如: 0,3,10,30 或 0 3 10 30）" class="sr-text-input">
-          <div class="sr-plan-custom-hint">支持空格、逗号、分号</div>
+          <input type="text" id="sr-readd-custom-intervals" placeholder="${this.tr('eg. 0 3 10 30')}" class="sr-text-input">
         </div>
       </div>
       <div class="leetcode-sr-modal-footer">

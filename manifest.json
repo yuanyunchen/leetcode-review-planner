@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LeetCode Review Planner",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Spaced repetition for LeetCode with review plans, history, tag search, and optional Google Calendar sync.",
   "icons": {
     "16": "icons/icon16.png",

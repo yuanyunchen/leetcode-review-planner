@@ -1,6 +1,6 @@
 # LeetCode Review Planner -- Agent Index
 
-> v2.0.0 | Chrome Extension (Manifest V3) | No bundler, no framework
+> v2.2.0 | Chrome Extension (Manifest V3) | No bundler, no framework
 
 ## 1. Project Overview
 
@@ -35,7 +35,7 @@ leetcode-review-helper/
 | File | Role | Key Export / Class | Lines |
 |------|------|--------------------|-------|
 | `background.js` | Data layer + scheduling + Calendar | `SpacedRepetitionManager` (singleton) | ~806 |
-| `content.js` | In-page UI + DOM scraping + home modal | `LeetCodeHelper` (singleton) + `LRS_SEARCH` IIFE | ~3089 |
+| `content.js` | In-page UI + DOM scraping + home modal | `LeetCodeHelper` (singleton) + `LRS_SEARCH` IIFE | ~3359 |
 | `popup.js` | Toolbar popup UI | `PopupManager` (singleton) + `LRS_SEARCH` IIFE (duplicate) | ~952 |
 | `i18n.js` | i18n dictionary + helpers | `globalThis.LRS_I18N` IIFE | ~387 |
 | `content.css` | Content script styles | CSS custom properties `--sr-*` | ~3800 |
@@ -161,7 +161,7 @@ All communication uses `chrome.runtime.sendMessage({ action, ...params })`.
 | `markMastered` | `slug` | `{ success }` | both |
 | `unmarkMastered` | `slug` | `{ success }` | both |
 | `readdProblem` | `slug, planType, customIntervals` | `{ success }` | content |
-| `addExtraReview` | `slug, days` | `{ success }` | content |
+| `addExtraReview` | `slug, days` (`number` or `number[]`; duplicates removed, sorted) | `{ success }` | content |
 | `removeReviewDate` | `slug, index` | `{ success }` | content |
 | `deleteProblem` | `slug` | `{ success }` | both |
 | `updateCustomFields` | `slug, fields` | `{ success }` | content |
@@ -208,10 +208,11 @@ The `LeetCodeHelper` class is organized into labeled sections. Use these markers
 | Add Review Modal | ~2208-2340 | "Add to review" dialog with plan selection |
 | Submit Review Modal | ~2341-2473 | "Submit review" dialog with time/comment input |
 | Problem Detail Modal | ~2474-2749 | Full problem detail: timeline, history, manage dates |
-| Extra Review Modal | ~2750-2809 | Add extra review date dialog |
+| Extra Review Modal | ~2750-2820 | Add extra review date(s); placeholder `eg. 30 60 90`; same `parseCustomIntervals` parsing (commas/spaces/etc.) |
 | Readd Modal | ~2810-2910 | Re-add a mastered/completed problem with new plan |
-| Utilities | ~2911-2959 | `safeSendMessage`, `showReloadPrompt`, `showNotification`, `setupMessageListener` |
-| LRS_SEARCH IIFE | ~2962-3086 | Search/ranking algorithm (duplicated in popup.js) |
+| Global Keyboard Shortcuts | ~204-420 | `setupGlobalKeyboardShortcuts`, `keyboardEscapeTopLayer`, Space then Enter, Shift+Cmd/Ctrl+Enter, Escape |
+| Utilities | ~3182-3231 | `safeSendMessage`, `showReloadPrompt`, `showNotification`, `setupMessageListener` |
+| LRS_SEARCH IIFE | ~3233-3358 | Search/ranking algorithm (duplicated in popup.js) |
 
 ---
 
@@ -368,6 +369,10 @@ this.localize(domElement)      // -> calls LRS_I18N.localizeElement(this.uiLangu
 
 - **Feedback**: every action shows visible feedback (toast notification, badge update, state change)
 - **Keyboard accessibility**: modals support Enter-to-confirm (`bindEnterActivatesPrimary`), arrow-key navigation for plan radios (`bindPlanArrowKeys`), focus management (`focusModalField`)
+- **Global shortcuts (LeetCode tab, `content.js` `setupGlobalKeyboardShortcuts`)**:
+  - **Space then Enter** (two-step chord; **Space** arms within ~2.5s, **Enter** confirms): If a confirmable extension modal is open (`#sr-modal-confirm`, `#sr-submit-review`, `#sr-extra-confirm`, `#sr-readd-confirm`, or home sub-dialog `#sr-sub-confirm`), activates that primary button. Otherwise, on a problem page, runs the same action as the floating main button (**加入复习** / **提交复习**) when focus is not in the host code editor (Monaco/CodeMirror) or another page text field. **Space** is ignored for arming when focus is in a typing field or when no confirm/main action applies; while armed, **Space** refreshes the chord timer. Does not change widget collapsed state.
+  - **Shift+Cmd+Enter** (macOS) / **Shift+Ctrl+Enter** (Windows/Linux; no Alt): If no blocking overlay is open, same expand/collapse + **当日复习** behavior as the floating toggle (collapsed → expand and open today panel; expanded → collapse). Skipped when focus is in the host code editor or a host text field (same guards as the main floating shortcut).
+  - **Escape**: Dismisses the innermost extension layer only: home submit sub-dialog (`#sr-home-sub-dialog`) → problem modal (`#leetcode-sr-modal-overlay`) → home settings (`#sr-settings-view` via `hideSettingsView`) → home modal (`#sr-home-overlay`) → today side panel → expanded floating widget (collapse). Ignored when focus is in the host code editor so native Esc behavior is preserved there.
 - **Graceful degradation**: `safeSendMessage` catches extension disconnect and shows a reload prompt
 - **Progressive disclosure**: widget starts collapsed; details are revealed on demand via modals
 - **Responsive**: content.css has `@media` queries; popup has fixed 440px width optimized for Chrome popup
